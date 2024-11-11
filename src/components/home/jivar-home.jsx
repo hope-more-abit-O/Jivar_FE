@@ -2,6 +2,7 @@ import React from 'react';
 import { Search, ChevronDown, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useLoadingNavigation } from '../../util/useLoadingNavigation';
+import logo from '../../assets/7537044.jpg'
 
 export default function JivarHome() {
     const { isLoading, navigateWithLoading } = useLoadingNavigation();
@@ -16,7 +17,7 @@ export default function JivarHome() {
                 <div className="container mx-auto px-4 py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-8">
-                            <img src="/placeholder.svg?height=32&width=180" alt="Jivar" className="h-8" />
+                            <img src={logo} alt="Jivar" className="h-8" />
                             <nav className="hidden md:flex items-center space-x-6">
                                 <button className="flex items-center space-x-1 text-[#42526E] hover:text-blue-600">
                                     <span>Products</span>
@@ -43,13 +44,11 @@ export default function JivarHome() {
                             <button className="p-2 hover:bg-gray-100 rounded-full">
                                 <Search className="h-5 w-5 text-gray-500" />
                             </button>
-                            <a
-                                href="/authentication/sign-in"
-                                onClick={handleSignIn}
-                                className="text-blue-600 font-medium hover:text-blue-700 font-bold px-4 py-2 rounded transition-colors duration-200 inline-flex items-center justify-center"
-                            >
-                                Sign in
-                            </a>
+                            <Link
+                                to="/authentication/sign-in"
+                                className="bg-blue-600 text-white px-6 py-3 rounded-full text-lg font-medium hover:bg-blue-700 transition-colors">
+                                Sign In
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -131,7 +130,7 @@ export default function JivarHome() {
                         <div>
                             <h4 className="font-semibold mb-4">Products</h4>
                             <ul className="space-y-2">
-                                <li><a href="#" className="hover:underline">Jira Software</a></li>
+                                <li><a href="#" className="hover:underline">Jivar Software</a></li>
                                 <li><a href="#" className="hover:underline">Confluence</a></li>
                                 <li><a href="#" className="hover:underline">Trello</a></li>
                                 <li><a href="#" className="hover:underline">Bitbucket</a></li>
