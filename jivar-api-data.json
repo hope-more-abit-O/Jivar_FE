@@ -1,0 +1,26 @@
+{
+    "account": [
+      {
+        "id": 1,
+        "email": "john.doe@example.com",
+        "password": "hashed_password_1",
+        "phone": "12345678901",
+        "username": "johndoe",
+        "birthday": "1990-01-01T00:00:00",
+        "gender": "male",
+        "create_time": "2023-01-01T10:00:00",
+        "role": "user"
+      },
+      {
+        "id": 2,
+        "email": "jane.smith@example.com",
+        "password": "hashed_password_2",
+        "phone": "98765432101",
+        "username": "janesmith",
+        "birthday": "1992-05-15T00:00:00",
+        "gender": "female",
+        "create_time": "2023-02-01T11:30:00",
+        "role": "admin"
+      }
+    ]
+  }

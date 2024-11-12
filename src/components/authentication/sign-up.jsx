@@ -1,8 +1,50 @@
-import React from "react";
-import { Link } from "react-router-dom";
-import logo from '../../assets/7537044.jpg'
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import logo from '../../assets/7537044.jpg';
+import jivarData from '../../../jivar-api-data.json';
 
 export default function SignUp() {
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError("");
+
+    if (email) {
+      // Check if the email already exists
+      const existingUser = jivarData.account.find(account => account.email === email);
+
+      if (existingUser) {
+        setError("An account with this email already exists.");
+      } else {
+        // Add new user to the JSON data
+        const newUser = {
+          id: jivarData.account.length + 1,
+          email: email,
+          password: "", // In a real app, you'd hash the password
+          phone: "",
+          username: email.split('@')[0],
+          birthday: null,
+          gender: "",
+          create_time: new Date().toISOString(),
+          role: "user"
+        };
+
+        jivarData.account.push(newUser);
+
+        // In a real app, you'd save this to a database or API
+        console.log("New user added:", newUser);
+
+        // Redirect to sign in page
+        navigate("/authentication/sign-in");
+      }
+    } else {
+      setError("Please enter an email address.");
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
       <div className="absolute inset-0 bg-[#F4F5F7]">
@@ -27,11 +69,15 @@ export default function SignUp() {
           <h1 className="text-xl font-semibold text-[#253858]">Sign up to continue</h1>
         </div>
         
-        <div className="px-6 pb-6 space-y-4">
+        <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-4">
+          {error && <p className="text-red-500 text-sm">{error}</p>}
           <input 
             type="email" 
             placeholder="Enter your email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className="w-full h-10 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
           />
           <div className="text-xs text-[#42526E]">
             By signing up, I accept the{' '}
@@ -39,10 +85,10 @@ export default function SignUp() {
             {' '}and acknowledge the{' '}
             <a href="#" className="text-[#0052CC] hover:underline">Privacy Policy</a>.
           </div>
-          <button className="w-full h-10 bg-[#0052CC] hover:bg-[#0747A6] text-white rounded-md transition-colors duration-200">
+          <button type="submit" className="w-full h-10 bg-[#0052CC] hover:bg-[#0747A6] text-white rounded-md transition-colors duration-200">
             Sign up
           </button>
-        </div>
+        </form>
 
         <div className="px-6 pb-6">
           <div className="relative text-center">
@@ -50,7 +96,6 @@ export default function SignUp() {
               <div className="w-full border-t border-gray-200"></div>
             </div>
           </div>
-
         </div>
 
         <div className="p-6 border-t border-gray-200 space-y-6 text-sm">

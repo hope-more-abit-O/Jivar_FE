@@ -35,14 +35,27 @@ export default function KanbanProject() {
     const dropdownRef = useRef(null);
     const location = useLocation();
     const [hoveredColumn, setHoveredColumn] = useState(null);
-    const [isCreatingIssue, setIsCreatingIssue] = useState(false);
-
-    const handleCreateClick = () => {
-        setIsCreatingIssue(true);
+    const [isCreatingIssue, setIsCreatingIssue] = useState({
+        todo: false,
+        inProgress: false,
+        done: false
+    });
+    const [searchQuery, setSearchQuery] = useState('');
+    const createIssueRefs = {
+        todo: useRef(null),
+        inProgress: useRef(null),
+        done: useRef(null)
     };
 
-    const handleCreateSubmit = () => {
-        setIsCreatingIssue(false);
+    const handleCreateClick = (column) => {
+        setIsCreatingIssue(prev => ({ ...prev, [column]: true }));
+        if (column !== 'todo') {
+            setHoveredColumn(null);
+        }
+    };
+
+    const handleCreateSubmit = (column) => {
+        setIsCreatingIssue(prev => ({ ...prev, [column]: false }));
         // Handle issue creation logic here
     };
 
@@ -51,6 +64,13 @@ export default function KanbanProject() {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
                 setIsProjectsOpen(false);
             }
+
+            // Check if click is outside of any create issue form
+            Object.keys(createIssueRefs).forEach(column => {
+                if (createIssueRefs[column].current && !createIssueRefs[column].current.contains(event.target)) {
+                    setIsCreatingIssue(prev => ({ ...prev, [column]: false }));
+                }
+            });
         }
 
         document.addEventListener('mousedown', handleClickOutside);
@@ -78,11 +98,80 @@ export default function KanbanProject() {
     ];
 
     const subNavItems = ['Worked on', 'Viewed', 'Assigned to me', 'Starred'];
-    const [searchQuery, setSearchQuery] = useState('');
+
+    const renderColumn = (title, column, showCheckmark = false) => (
+        <div 
+            className="w-[300px] bg-gray-100 p-2 py-1 rounded-sm"
+            onMouseEnter={() => column !== 'todo' && !isCreatingIssue[column] && setHoveredColumn(column)}
+            onMouseLeave={() => column !== 'todo' && !isCreatingIssue[column] && setHoveredColumn(null)}
+        >
+            <div className="flex w-full justify-between items-center py-1">
+                <div className="hover:bg-gray-200 pe-40 rounded-sm space-x-1">
+                    <Typography className='font-semibold text-slate-500 text-[10px] py-1 px-1 flex space-x-2'>
+                        {title}
+                        {showCheckmark && (
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 30" strokeWidth={1.5} stroke="green" className="size-4 ml-1">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                            </svg>
+                        )}
+                    </Typography>
+                </div>
+                <div className="hover:bg-gray-200 ">
+                    <IconButton variant="text" className="rounded-full flex justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
+                            <path strokeLinecap="" strokeLinejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
+                        </svg>
+                    </IconButton>
+                </div>
+            </div>
+            {(column === 'todo' || hoveredColumn === column || isCreatingIssue[column]) && (
+                !isCreatingIssue[column] ? (
+                    <Button
+                        variant="text"
+                        className="flex items-center justify-start gap-1 px-0 hover:bg-gray-200 pe-40 rounded-sm w-full"
+                        onClick={() => handleCreateClick(column)}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                        </svg>
+                        <Typography className='normal-case font-semibold text-sm not-italic'>Create issue</Typography>
+                    </Button>
+                ) : (
+                    <div ref={createIssueRefs[column]} className="p-1 bg-white rounded border border-blue-500 shadow-sm">
+                        <Input
+                            type="text"
+                            placeholder="What needs to be done?"
+                            className="!border-0 focus:!border-0 ring-0 focus:ring-0"
+                            labelProps={{
+                                className: "hidden",
+                            }}
+                            containerProps={{
+                                className: "min-w-0",
+                            }}
+                        />
+                        <div className="flex justify-between items-center mt-2">
+                            <div className="flex-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4 text-blue-500">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                </svg>
+                            </div>
+                            <Button
+                                size="sm"
+                                className="ml-auto bg-blue-500 text-white px-4 py-1 rounded text-sm"
+                                onClick={() => handleCreateSubmit(column)}
+                            >
+                                Create
+                            </Button>
+                        </div>
+                    </div>
+                )
+            )}
+        </div>
+    );
 
     return (
         <div className="min-h-screen bg-white">
-                <Navigation/>
+            <Navigation/>
             <div className="flex">
                 {/* Left Sidebar */}
                 <Card className="w-64 h-[calc(100vh-56px)] rounded-none shadow-none">
@@ -189,122 +278,9 @@ export default function KanbanProject() {
 
                         {/* Kanban Board */}
                         <div className='flex space-x-4'>
-                            {/* TO DO Column */}
-                            <div className="w-[300px] bg-gray-100 p-2 py-1 rounded-sm">
-                                <div className="flex w-full justify-between items-center py-1">
-                                    <div className="hover:bg-gray-200 pe-40 rounded-sm ">
-                                        <Typography className='font-semibold text-slate-500 text-[10px] py-1 px-1'>TO DO</Typography>
-                                    </div>
-                                    <div className="hover:bg-gray-200 ">
-                                        <IconButton variant="text" className="rounded-full flex justify-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
-                                                <path strokeLinecap="" strokeLinejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
-                                            </svg>
-                                        </IconButton>
-                                    </div>
-                                </div>
-                                {!isCreatingIssue ? (
-                                    <Button
-                                        variant="text"
-                                        className="flex items-center justify-start gap-1 px-0 hover:bg-gray-200 pe-40 rounded-sm w-full"
-                                        onClick={handleCreateClick}
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                                        </svg>
-                                        <Typography className='normal-case font-semibold text-sm not-italic'>Create issue</Typography>
-                                    </Button>
-                                ) : (
-                                    <div className="p-1 bg-white rounded border border-blue-500 shadow-sm">
-                                        <Input
-                                            type="text"
-                                            placeholder="What needs to be done?"
-                                            className="!border-0 focus:!border-0 ring-0 focus:ring-0"
-                                            labelProps={{
-                                                className: "hidden",
-                                            }}
-                                            containerProps={{
-                                                className: "min-w-0",
-                                            }}
-                                        />
-                                        <div className="flex justify-between items-center mt-2">
-                                            <div className="flex-1">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4 text-blue-500">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                                                </svg>
-                                            </div>
-                                            <Button
-                                                size="sm"
-                                                className="ml-auto bg-blue-500 text-white px-4 py-1 rounded text-sm"
-                                                onClick={handleCreateSubmit}
-                                            >
-                                                Create
-                                            </Button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* IN PROGRESS Column */}
-                            <div
-                                className="w-[300px] bg-gray-100 p-2 py-1 rounded-sm"
-                                onMouseEnter={() => setHoveredColumn('progress')}
-                                onMouseLeave={() => setHoveredColumn(null)}
-                            >
-                                <div className="flex w-full justify-between items-center py-1">
-                                    <div className="hover:bg-gray-200 pe-40 rounded-sm ">
-                                        <Typography className='font-semibold text-slate-500 text-[10px] py-1 px-1'>IN PROGRESS</Typography>
-                                    </div>
-                                    <div className="hover:bg-gray-200 ">
-                                        <IconButton variant="text" className="rounded-full flex justify-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
-                                                <path strokeLinecap="" strokeLinejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
-                                            </svg>
-                                        </IconButton>
-                                    </div>
-                                </div>
-                                {hoveredColumn === 'progress' && (
-                                    <Button variant="text" className="flex items-center justify-start gap-1 px-0 hover:bg-gray-200 pe-40 rounded-sm">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                                        </svg>
-                                        <Typography className='normal-case font-semibold text-sm not-italic'>Create issue</Typography>
-                                    </Button>
-                                )}
-                            </div>
-
-                            {/* DONE Column */}
-                            <div
-                                className="w-[300px] bg-gray-100 p-2 py-1 rounded-sm"
-                                onMouseEnter={() => setHoveredColumn('done')}
-                                onMouseLeave={() => setHoveredColumn(null)}
-                            >
-                                <div className="flex w-full justify-between items-center py-1">
-                                    <div className="hover:bg-gray-200 pe-40 rounded-sm space-x-1">
-                                        <Typography className='font-semibold text-slate-500 text-[10px] py-1 px-1 flex space-x-2'>
-                                            DONE
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 30" strokeWidth={1.5} stroke="green" className="size-4 ml-1">
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                                            </svg>
-                                        </Typography>
-                                    </div>
-                                    <div className="hover:bg-gray-200 ">
-                                        <IconButton variant="text" className="rounded-full flex justify-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
-                                                <path strokeLinecap="" strokeLinejoin="round" d="M6.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM12.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM18.75 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
-                                            </svg>
-                                        </IconButton>
-                                    </div>
-                                </div>
-                                {hoveredColumn === 'done' && (
-                                    <Button variant="text" className="flex items-center justify-start gap-1 px-0 hover:bg-gray-200 pe-40 rounded-sm">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                                        </svg>
-                                        <Typography className='normal-case font-semibold text-sm not-italic'>Create issue</Typography>
-                                    </Button>
-                                )}
-                            </div>
+                            {renderColumn('TO DO', 'todo')}
+                            {renderColumn('IN PROGRESS', 'inProgress')}
+                            {renderColumn('DONE', 'done', true)}
                         </div>
                     </div>
                 </div>
