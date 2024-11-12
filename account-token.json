@@ -1,0 +1,13 @@
+{
+    "account_tokens": [
+      {
+        "account_id": 1,
+        "accessToken": "sampleAccessToken123",
+        "refreshToken": "sampleRefreshToken123",
+        "token_type": "Bearer",
+        "expired": false,
+        "revoked": false
+      }
+    ]
+  }
+  

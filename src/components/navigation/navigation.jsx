@@ -61,17 +61,38 @@ export default function Navigation() {
 
     useEffect(() => {
         const fetchUser = async () => {
+            const token = Cookies.get('accessToken');
+            if (token == null) {
+                navigate('/authentication/sign-in');
+                return;
+            }
+
+
             try {
-                const res = await fetch("http://localhost:8008/account");
-                console.log(res);
+                // Assuming token has the user ID, e.g., 'mock_token_USERID_TIMESTAMP'
+                const userId = token.split('_')[2];
+
+                const res = await fetch(`http://localhost:8008/account/${userId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    },
+                });
+
+                if (!res.ok) {
+                    throw new Error(`HTTP error! status: ${res.status}`);
+                }
+
+                const data = await res.json();
+                console.log("Fetched user data:", data);
+                setUser(data);
 
             } catch (error) {
-                console.log("Failed to fetch");
+                console.error("Failed to fetch data:", error);
             }
-        }
-        fetchUser();
-    },[]);
+        };
 
+        fetchUser();
+    }, [navigate]);
 
     const handleItemClick = (itemName, path) => {
         setActiveItem(itemName);
@@ -150,17 +171,17 @@ export default function Navigation() {
 
     const renderProfileMenu = () => (
         <div className="relative" ref={profileDropdownRef}>
-            <Menu 
-                open={isProfileOpen} 
+            <Menu
+                open={isProfileOpen}
                 handler={setIsProfileOpen}
                 placement="bottom-end"
                 offset={4}
             >
                 <MenuHandler>
                     <IconButton variant="text" className="flex justify-center">
-                        <Avatar 
-                            src={logo} 
-                            alt={user ? user.username : 'Profile'} 
+                        <Avatar
+                            src={logo}
+                            alt={user ? user.username : 'Profile'}
                             size="xs"
                             className="cursor-pointer"
                         />

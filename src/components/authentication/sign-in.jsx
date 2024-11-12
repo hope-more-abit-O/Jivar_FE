@@ -38,7 +38,7 @@ export default function SignIn() {
                     const bearerToken = `mock_token_${user.id}_${Date.now()}`;
 
                     // Store the bearer token in a cookie
-                    Cookies.set('bearerToken', bearerToken, { expires: 7 });
+                    Cookies.set('accessToken', bearerToken, { expires: 7 });
                     
                     setTimeout(() => {
                         setIsSigningIn(false);
@@ -59,7 +59,7 @@ export default function SignIn() {
     };
 
     const checkStoredToken = () => {
-        const storedToken = Cookies.get('bearerToken');
+        const storedToken = Cookies.get('accessToken');
         if (storedToken) {
             setTokenInfo(`Stored token: ${storedToken}`);
         } else {
