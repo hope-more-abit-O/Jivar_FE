@@ -1,4 +1,4 @@
-import { Menu, Spinner } from '@material-tailwind/react';
+import { Menu, Option, Select, Spinner } from '@material-tailwind/react';
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
@@ -24,26 +24,26 @@ export default function SignIn() {
 
         try {
             if (email && password) {
-                // Simulate API call delay
                 await new Promise(resolve => setTimeout(resolve, 1000));
 
-                // Check if the email and password match any account in the JSON data
-                const user = jivarData.account.find(account => 
+                const user = jivarData.account.find(account =>
                     account.email === email && account.password === password
                 );
+                console.log(user)
 
                 if (user) {
-                    // Successful login
-                    // Generate a mock bearer token (in a real app, this would come from the server)
-                    const bearerToken = `mock_token_${user.id}_${Date.now()}`;
+                    const bearerToken = jivarData.account_token.find(acc =>
+                        acc.account_id === user.id
+                    );
+                    console.log(bearerToken.accessToken);
 
-                    // Store the bearer token in a cookie
-                    Cookies.set('accessToken', bearerToken, { expires: 7 });
-                    
+                    Cookies.set('accessToken', bearerToken.accessToken, { expires: 7 });
+                    Cookies.set('account_id', bearerToken.account_id);
+
                     setTimeout(() => {
                         setIsSigningIn(false);
                         navigate("/jivar/your-work");
-                    }, 5000);
+                    }, 1000);
                 } else {
                     setError("Invalid email or password. Please try again.");
                     setIsSigningIn(false);
@@ -55,6 +55,7 @@ export default function SignIn() {
         } catch (err) {
             setError("Failed to sign in. Please try again.");
             setIsSigningIn(false);
+            console.log(err)
         }
     };
 
