@@ -42,6 +42,7 @@ export default function Navigation() {
     const [isTeamsOpen, setIsTeamsOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
     const dropdownRef = useRef(null);
     const teamsDropdownRef = useRef(null);
     const profileDropdownRef = useRef(null);
@@ -69,25 +70,28 @@ export default function Navigation() {
 
 
             try {
-                // Assuming token has the user ID, e.g., 'mock_token_USERID_TIMESTAMP'
-                const userId = token.split('_')[2];
+                const userId = Cookies.get('account_id');
+                console.log(userId);
 
-                const res = await fetch(`http://localhost:8008/account/${userId}`, {
+                const res = await fetch(`http://localhost:8008/account?id=${userId}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                     },
                 });
+                console.log(res);
 
                 if (!res.ok) {
                     throw new Error(`HTTP error! status: ${res.status}`);
                 }
 
                 const data = await res.json();
-                console.log("Fetched user data:", data);
-                setUser(data);
+                console.log("Fetched user data:", data[0]);
+                setUser(data[0]);
 
             } catch (error) {
                 console.error("Failed to fetch data:", error);
+            } finally {
+                setLoading(false);
             }
         };
 
@@ -122,6 +126,8 @@ export default function Navigation() {
 
     const handleLogout = () => {
         Cookies.remove('accessToken');
+        Cookies.remove('account_id');
+
         setUser(null);
         navigate('/authentication/sign-in');
     };
@@ -170,77 +176,77 @@ export default function Navigation() {
     );
 
     const renderProfileMenu = () => (
-        <div className="relative" ref={profileDropdownRef}>
-            <Menu
-                open={isProfileOpen}
-                handler={setIsProfileOpen}
-                placement="bottom-end"
-                offset={4}
-            >
-                <MenuHandler>
-                    <IconButton variant="text" className="flex justify-center">
-                        <Avatar
-                            src={logo}
-                            alt={user ? user.username : 'Profile'}
-                            size="xs"
-                            className="cursor-pointer"
-                        />
-                    </IconButton>
-                </MenuHandler>
-                <MenuList className="w-[240px] p-0">
-                    <div className="p-3 border-b border-gray-200">
-                        <Typography variant="small" color="blue-gray" className="font-medium mb-2">
-                            Account
-                        </Typography>
-                        <div className="flex items-center gap-3">
-                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-red-500 text-white">
-                                {user ? user.username.substring(0, 2).toUpperCase() : 'U'}
-                            </div>
-                            <div>
-                                <Typography variant="small" color="blue-gray" className="font-medium">
-                                    {user ? user.username : 'User'}
+        <div>
+            {loading ? (
+                <p>Loading...</p>
+            ) : (
+                <div className="relative" ref={profileDropdownRef}>
+                    <Menu
+                        open={isProfileOpen}
+                        handler={setIsProfileOpen}
+                        placement="bottom-end"
+                        offset={4}
+                    >
+                        <MenuHandler>
+                            <IconButton variant="text" className="flex justify-center">
+                                <Avatar
+                                    src={logo}
+                                    alt={user ? user.username : 'Profile'}
+                                    size="xs"
+                                    className="cursor-pointer"
+                                />
+                            </IconButton>
+                        </MenuHandler>
+                        <MenuList className="w-[240px] p-0">
+                            <div className="p-3 border-b border-gray-200">
+                                <Typography variant="small" color="blue-gray" className="font-medium mb-2">
+                                    Account
                                 </Typography>
-                                <Typography variant="small" color="gray" className="font-normal">
-                                    {user ? user.email : 'user@example.com'}
-                                </Typography>
+                                <div className="flex items-center gap-3">
+
+                                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-red-500 text-white">
+                                        {user ? user.username.substring(0, 2).toUpperCase() : 'U'}
+                                    </div>
+                                    <div>
+                                        <Typography variant="small" color="blue-gray" className="font-medium">
+                                            {user ? user.username : 'User'}
+                                        </Typography>
+                                        <Typography variant="small" color="gray" className="font-normal">
+                                            {user ? user.email : 'user@example.com'}
+                                        </Typography>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        <MenuItem className="flex items-center gap-2 mt-2 hover:bg-blue-50/80">
-                            <ExternalLink className="h-4 w-4" />
-                            Manage account
-                        </MenuItem>
-                    </div>
 
-                    <div className="p-3 border-b border-gray-200">
-                        <Typography variant="small" color="blue-gray" className="font-medium mb-2">
-                            Jira
-                        </Typography>
-                        <div className="space-y-1">
-                            <MenuItem className="hover:bg-blue-50/80">
-                                Profile
-                            </MenuItem>
-                            <MenuItem className="hover:bg-blue-50/80">
-                                Personal settings
-                            </MenuItem>
-                            <MenuItem className="flex items-center justify-between hover:bg-blue-50/80">
-                                <span>Notifications</span>
-                                <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">NEW</span>
-                            </MenuItem>
-                            <MenuItem className="flex items-center justify-between hover:bg-blue-50/80">
-                                <span>Theme</span>
-                                <ChevronRight className="h-4 w-4" />
-                            </MenuItem>
-                        </div>
-                    </div>
+                            <div className="p-3 border-b border-gray-200">
+                                <div className="space-y-1">
+                                    <MenuItem className="hover:bg-blue-50/80 flex justify-start">
+                                        <Link to={'/jivar/manage-profile'}>
+                                            Manage Profile
+                                        </Link>
+                                    </MenuItem>
+                                    <MenuItem className="flex items-center justify-between hover:bg-blue-50/80">
+                                        <span>Notifications</span>
+                                        <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">NEW</span>
+                                    </MenuItem>
+                                    <MenuItem className="flex items-center justify-between hover:bg-blue-50/80">
+                                        <span>Theme</span>
+                                        <ChevronRight className="h-4 w-4" />
+                                    </MenuItem>
+                                </div>
+                            </div>
 
-                    <MenuItem className="flex items-center gap-2 p-3 text-red-500 hover:bg-red-50/80" onClick={handleLogout}>
-                        <LogOut className="h-4 w-4" />
-                        Log out
-                    </MenuItem>
-                </MenuList>
-            </Menu>
+                            <MenuItem className="flex items-center gap-2 p-3 text-red-500 hover:bg-red-50/80" onClick={handleLogout}>
+                                <LogOut className="h-4 w-4" />
+                                Log out
+                            </MenuItem>
+                        </MenuList>
+                    </Menu>
+                </div>
+            )}
         </div>
     );
+
 
     return (
         <Navbar className="max-w-full rounded-none px-4 py-2 border-b border-gray-200">
@@ -290,9 +296,12 @@ export default function Navigation() {
                                             </div>
                                             <hr className="my-2" />
                                             <MenuItem>
-                                                <Typography variant="small" className="font-normal">
-                                                    View all projects
-                                                </Typography>
+                                                <Link to={'/jivar/projects'}>
+                                                    <Typography variant="small" className="font-normal">
+                                                        View all projects
+                                                    </Typography>
+                                                </Link>
+
                                             </MenuItem>
                                             <MenuItem>
                                                 <Link to="/jivar/create-project" className="w-full">
@@ -334,30 +343,26 @@ export default function Navigation() {
                 </div>
 
                 <div className="flex items-center space-x-4">
-                    <Button color="blue" size="sm">
-                        Create
-                    </Button>
                     <div className="relative w-64">
                         <Input
                             type="text"
                             placeholder="Search"
-                            className="pl-10 !border !border-gray-300 bg-white text-gray-900 shadow-lg shadow-gray-900/5 ring-4 ring-transparent placeholder:text-gray-500 focus:!border-gray-900 focus:!border-t-gray-900 focus:ring-gray-900/10"
+                            className="w-full pl-9 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors duration-200"
                             labelProps={{
                                 className: "hidden",
                             }}
-                            containerProps={{ className: "min-w-[100px]" }}
+                            containerProps={{
+                                className: "min-w-[100px]",
+                            }}
                         />
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Search className="h-4 w-4 text-gray-400" />
+                        </div>
                     </div>
+
                     <IconButton variant="text" className="flex justify-center">
                         <Bell className="h-5 w-5 text-[#42526E] flex" />
                         <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
-                    </IconButton>
-                    <IconButton variant="text" className='flex justify-center'>
-                        <HelpCircle className="h-5 w-5 text-[#42526E]" />
-                    </IconButton>
-                    <IconButton variant="text" className='flex justify-center'>
-                        <Settings className="h-5 w-5 text-[#42526E]" />
                     </IconButton>
                     {renderProfileMenu()}
                 </div>
