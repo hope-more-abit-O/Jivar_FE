@@ -9,8 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.0",
     "@heroicons/react": "^2.1.5",
     "@material-tailwind/react": "^2.1.10",
+    "axios": "^1.7.7",
     "jivar-fe": "file:",
     "js-cookie": "^3.0.5",
     "lucide-react": "^0.312.0",
