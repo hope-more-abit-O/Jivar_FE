@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import axios from 'axios';
 import logo from '../../assets/7537044.jpg';
 import { Search, ChevronDown, Settings, Share2, Maximize2, MoreHorizontal, Plus, Star, CloudLightning, Bell, HelpCircle, X, MessageSquare } from 'lucide-react';
 import {
@@ -14,6 +15,7 @@ import {
     DialogBody,
     DialogFooter,
 } from "@material-tailwind/react";
+import Cookies from 'js-cookie';
 import Navigation from '../navigation/navigation';
 
 export default function KanbanProject() {
@@ -26,11 +28,25 @@ export default function KanbanProject() {
     const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [hoveredColumn, setHoveredColumn] = useState(null);
+    const [isSprintDialogOpen, setIsSprintDialogOpen] = useState(false);
+    const [newSprintData, setNewSprintData] = useState({
+        name: '',
+        startDate: '',
+        endDate: ''
+    });
     const [isCreatingIssue, setIsCreatingIssue] = useState({
         todo: false,
         inProgress: false,
         done: false
     });
+    const handleCreateSprintClick = () => {
+        setIsSprintDialogOpen(true);
+    };
+
+    const handleSprintDialogClose = () => {
+        setIsSprintDialogOpen(false);
+        setNewSprintData({ name: '', startDate: '', endDate: '' });
+    };
     const [newIssueText, setNewIssueText] = useState({
         todo: '',
         inProgress: '',
@@ -49,19 +65,65 @@ export default function KanbanProject() {
     useEffect(() => {
         const fetchProject = async () => {
             try {
-                const response = await fetch(`http://localhost:8008/project?id=${projectId}`);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const data = await response.json();
-                if (data.length > 0) {
-                    const activeSprints = data[0].sprints.filter(sprint => sprint.status === "ACTIVE");
-                    setProject({ ...data[0], sprints: activeSprints });
+                const response = await axios.get(`http://192.168.2.223:5002/api/Project/${projectId}?includeRole=true&includeSprint=true&includeTask=true`);
+                if (response.data) {
+                    const data = response.data;
+                    console.log('API Response:', response.data);
+
+
+                    setProject({
+                        id: data.id,
+                        name: data.name,
+                        description: data.description,
+                        create_by: {
+                            account_id: data.createBy?.id,
+                            username: data.createBy?.name,
+                        },
+                        create_time: data.createTime,
+                        complete_time: data.completeTime,
+                        budget: data.budget,
+                        status: data.status,
+                        project_roles: data.roles.map((role) => ({
+                            account_id: role.accountId,
+                            username: role.accountName,
+                            role: role.role,
+                        })),
+                        sprints: (data.sprints || []).map((sprint) => ({
+                            id: sprint.id,
+                            name: sprint.name,
+                            start_date: sprint.startDate,
+                            end_date: sprint.endDate,
+                            tasks: (sprint.tasks || []).map((task) => ({
+                                id: task.id,
+                                title: task.title,
+                                description: task.description,
+                                create_by: task.createBy,
+                                create_time: task.createTime,
+                                assign_by: task.assignBy,
+                                assignee: task.assignee,
+                                complete_time: task.completeTime,
+                                status: task.status,
+                                task_document: task.documentId
+                                    ? [
+                                        {
+                                            document_id: task.documentId,
+                                            name: `Document ${task.documentId}`,
+                                            file_path: `/files/doc${task.documentId}.pdf`,
+                                        },
+                                    ]
+                                    : [],
+                                sub_tasks: [],
+                                comments: [],
+                            })),
+                        })),
+                    });
                 } else {
                     setError('Project not found.');
                 }
             } catch (err) {
-                setError('Failed to load project.');
+                setError('Failed to load project.', err);
+                setError(err.message || 'An error occurred');
+                console.log(err)
             } finally {
                 setLoading(false);
             }
@@ -92,41 +154,38 @@ export default function KanbanProject() {
         };
     }, []);
 
-    useEffect(() => {
-        const fetchCurrentUser = async () => {
-            const token = Cookies.get('accessToken');
-            if (token == null) {
-                navigate('/authentication/sign-in');
-                return;
-            }
-            try {
-                const userId = Cookies.get('account_id');
-                console.log(userId);
+    const handleCreateSprintToggle = () => {
+        setIsCreatingSprint(!isCreatingSprint);
+    };
 
-                const res = await fetch(`http://localhost:8008/account?id=${userId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                    },
-                });
-                console.log(res);
+    const handleCreateSprintChange = (e) => {
+        const { name, value } = e.target;
+        setNewSprint((prev) => ({ ...prev, [name]: value }));
+    };
 
-                if (!res.ok) {
-                    throw new Error(`HTTP error! status: ${res.status}`);
-                }
 
-                const data = await res.json();
-                console.log("Fetched current user data:", data[0]);
-                setCurrentUser(data[0]);
+    const handleCreateSprintSubmit = async () => {
+        try {
+            await axios.post(`http://192.168.2.223:5002/api/v1/sprint?projectId=${projectId}`, newSprintData);
+            setIsSprintDialogOpen(false);
+            setNewSprintData({ name: '', startDate: '', endDate: '' });
+            const response = await axios.get(`http://192.168.2.223:5002/api/Project/${projectId}?includeRole=true&includeSprint=true&includeTask=true`);
+            setProject({
+                ...response.data,
+                sprints: response.data.sprints.map((sprint) => ({
+                    ...sprint,
+                    tasks: sprint.tasks || []
+                }))
+            });
+        } catch (error) {
+            console.error('Failed to create sprint:', error);
+            setError('Failed to create sprint. Please try again.');
+        }
+    };
 
-            } catch (error) {
-                console.error("Failed to fetch data:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchCurrentUser();
-    }, []);
+    const handleSprintDialogOpen = () => {
+        setIsSprintDialogOpen(true);
+    };
 
     useEffect(() => {
         const handleKeyPress = (e) => {
@@ -195,18 +254,12 @@ export default function KanbanProject() {
         if (!newComment.trim()) return;
 
         try {
-            const response = await fetch(`http://localhost:8008/task/${selectedTask.id}/comments`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    content: newComment,
-                    create_by: currentUser.id,
-                }),
+            const response = await axios.post(`http://localhost:8008/task/${selectedTask.id}/comments`, {
+                content: newComment,
+                create_by: currentUser.id,
             });
 
-            if (!response.ok) throw new Error('Failed to add comment');
+            if (response.status !== 200) throw new Error('Failed to add comment');
 
             const updatedTask = {
                 ...selectedTask,
@@ -227,27 +280,63 @@ export default function KanbanProject() {
         }
     };
 
-    const renderSprintGrid = () => (
-        <div className="grid grid-cols-4 gap-4 mb-6">
-            {project.sprints && project.sprints.map((sprint) => (
-                <div
-                    key={sprint.id}
-                    className="bg-gray-100 p-4 rounded shadow-sm cursor-pointer hover:bg-gray-200"
-                    onClick={() => handleSprintClick(sprint.id)}
-                >
-                    <Typography variant="small" color="blue-gray" className="font-semibold">
-                        Sprint: {sprint.name}
-                    </Typography>
-                    <Typography variant="small" color="gray" className="mt-1">
-                        Start: {new Date(sprint.start_date).toLocaleDateString()}
-                    </Typography>
-                    <Typography variant="small" color="gray">
-                        End: {new Date(sprint.end_date).toLocaleDateString()}
+    const renderSprintGrid = () => {
+        if (!project.sprints || project.sprints.length === 0) {
+            return (
+                <div className="flex flex-col items-center justify-center text-center p-6">
+                    <Typography variant="h6" color="gray" className="mb-2">
+                        It looks like this project does not have any sprints yet.{' '}
+                        <span
+                            className="text-blue-500 cursor-pointer hover:underline"
+                            onClick={handleSprintDialogOpen}
+                        >
+                            Create Sprint
+                        </span>
                     </Typography>
                 </div>
-            ))}
-        </div>
-    );
+            );
+        }
+
+        return (
+            <div>
+                <div className="flex justify-between items-center mb-6">
+                    <Typography variant="h5" color="blue-gray">
+                        Sprints
+                    </Typography>
+                    <Button
+                        variant="outlined"
+                        color="blue"
+                        size="sm"
+                        onClick={handleSprintDialogOpen}
+                        className="shadow-md"
+                    >
+                        Create Sprint
+                    </Button>
+                </div>
+
+                <div className="grid grid-cols-4 gap-4 mb-6">
+                    {project.sprints.map((sprint) => (
+                        <div
+                            key={sprint.id}
+                            className="bg-gray-100 p-4 rounded shadow-sm relative cursor-pointer hover:bg-gray-200"
+                            onClick={() => handleSprintClick(sprint.id)}
+                        >
+                            <Typography variant="small" color="blue-gray" className="font-semibold">
+                                Sprint: {sprint.name}
+                            </Typography>
+                            <Typography variant="small" color="gray" className="mt-1">
+                                Start: {new Date(sprint.start_date).toLocaleDateString()}
+                            </Typography>
+                            <Typography variant="small" color="gray">
+                                End: {new Date(sprint.end_date).toLocaleDateString()}
+                            </Typography>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
 
     const renderTaskDialog = () => {
         const taskCreator = project?.project_roles.find(
@@ -267,7 +356,7 @@ export default function KanbanProject() {
                 md: "w-8 h-8 text-sm",
                 lg: "w-10 h-10 text-base"
             };
-            
+
             return (
                 <div className={`${sizeClasses[size]} rounded-full bg-blue-500 flex items-center justify-center text-white font-medium`}>
                     {initials}
@@ -278,9 +367,8 @@ export default function KanbanProject() {
         return (
             <>
                 <div
-                    className={`fixed inset-0 bg-black/60 transition-opacity duration-300 ${
-                        isTaskDialogOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-                    } z-50`}
+                    className={`fixed inset-0 bg-black/60 transition-opacity duration-300 ${isTaskDialogOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+                        } z-50`}
                     onClick={() => setIsTaskDialogOpen(false)}
                 />
                 <Dialog
@@ -501,6 +589,7 @@ export default function KanbanProject() {
             </div>
             <div>
                 {tasks.map((task) => {
+                    console.log('task', tasks);
                     const taskAssignee = project?.project_roles.find(
                         (role) => role.account_id === task.assignee
                     );
@@ -652,7 +741,7 @@ export default function KanbanProject() {
                                         placeholder="Search"
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="pr-10 border border-gray-300 rounded-md focus:border-blue-500 focus:ring focus:ring-blue-500"
+                                        className="pr-10 border border-gray-300 rounded-md focus:border-blue-500 focus:ring focus:ring-blue-500 h-[2.25rem]"
                                     />
                                     <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                                 </div>
@@ -751,7 +840,59 @@ export default function KanbanProject() {
                             </div>
                         )}
                         {!selectedSprintId ? (
-                            renderSprintGrid()
+                            <div className="p-6">
+                                {renderSprintGrid()}
+                                <Dialog
+                                    open={isSprintDialogOpen}
+                                    handler={handleSprintDialogClose}
+                                    size="sm"
+                                >
+                                    <DialogHeader>Create Sprint</DialogHeader>
+                                    <DialogBody>
+                                        <div className="space-y-4">
+                                            <Input
+                                                label="Sprint Name"
+                                                value={newSprintData.name}
+                                                onChange={(e) =>
+                                                    setNewSprintData((prev) => ({ ...prev, name: e.target.value }))
+                                                }
+                                            />
+                                            <Input
+                                                type="date"
+                                                label="Start Date"
+                                                value={newSprintData.startDate}
+                                                onChange={(e) =>
+                                                    setNewSprintData((prev) => ({ ...prev, startDate: e.target.value }))
+                                                }
+                                            />
+                                            <Input
+                                                type="date"
+                                                label="End Date"
+                                                value={newSprintData.endDate}
+                                                onChange={(e) =>
+                                                    setNewSprintData((prev) => ({ ...prev, endDate: e.target.value }))
+                                                }
+                                            />
+                                        </div>
+                                    </DialogBody>
+                                    <DialogFooter>
+                                        <Button
+                                            variant="text"
+                                            color="blue-gray"
+                                            onClick={handleSprintDialogClose}
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            variant="filled"
+                                            color="blue"
+                                            onClick={handleCreateSprintSubmit}
+                                        >
+                                            Create
+                                        </Button>
+                                    </DialogFooter>
+                                </Dialog>
+                            </div>
                         ) : (
                             <>
                                 <Button
@@ -768,7 +909,7 @@ export default function KanbanProject() {
                                     )}
                                     {renderColumn(
                                         'IN PROGRESS',
-                                        project.sprints.find((s) => s.id === selectedSprintId)?.tasks.filter((task) => task.status === 'IN PROGRESS') || [],
+                                        project.sprints.find((s) => s.id === selectedSprintId)?.tasks.filter((task) => task.status === 'IN_PROGRESS') || [],
                                         'inProgress'
                                     )}
                                     {renderColumn(

@@ -1,10 +1,10 @@
-import { Spinner, Alert } from '@material-tailwind/react';
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
-import logo from '../../assets/7537044.jpg';
-import { Eye, EyeOff } from 'lucide-react';
 import axios from 'axios';
+import { Spinner, Alert } from '@material-tailwind/react';
+import { Eye, EyeOff } from 'lucide-react';
+import logo from '../../assets/7537044.jpg';
 import { Transition } from '@headlessui/react';
 
 export default function SignIn() {
@@ -16,6 +16,16 @@ export default function SignIn() {
     const [isSigningIn, setIsSigningIn] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
+
+    useEffect(() => {
+        // Show the success message when redirected with state
+        if (location.state?.successMessage) {
+            setMessage(location.state.successMessage);
+            setMessageType('green');
+            // Clear the message from state after showing it
+            navigate(location.pathname, { replace: true });
+        }
+    }, [location, navigate]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -30,7 +40,7 @@ export default function SignIn() {
                 formData.append('Password', password);
 
                 const response = await axios.post(
-                    'http://192.168.1.9:5002/api/v1/auth/login',
+                    'http://192.168.2.223:5002/api/v1/auth/login',
                     formData,
                     {
                         headers: {
@@ -45,37 +55,21 @@ export default function SignIn() {
                     Cookies.set('email', userEmail);
                     Cookies.set('roleName', roleName);
 
-                    setMessageType('green');
-                    setMessage('Login successful!');
-                    setTimeout(() => {
-                        setIsSigningIn(false);
-                        navigate('/jivar/your-work', {
-                            state: { successMessage: 'Login successful!' },
-                        });
-                        
-                    }, 3000);
+                    navigate('/jivar/your-work', {
+                        state: { successMessage: 'Login successful!' },
+                    });
                 }
             } else {
                 setMessageType('red');
                 setMessage('Please enter both email and password.');
-                setIsSigningIn(false);
             }
         } catch (err) {
             setMessageType('red');
             setMessage('Invalid email or password. Please try again.');
+        } finally {
             setIsSigningIn(false);
-            console.error(err);
         }
     };
-
-    useEffect(() => {
-        if (message) {
-            const timer = setTimeout(() => {
-                setMessage('');
-            }, 3000); 
-            return () => clearTimeout(timer);
-        }
-    }, [message]);
 
     return (
         <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
@@ -101,18 +95,6 @@ export default function SignIn() {
                     </Alert>
                 </Transition>
             )}
-
-            <div className="absolute inset-0 bg-[#F4F5F7]">
-                <div
-                    className="absolute inset-0"
-                    style={{
-                        background: 'linear-gradient(135deg, transparent 45%, white 45%, white 100%)',
-                    }}
-                />
-                <div className="absolute top-[15%] right-[20%] w-4 h-4 bg-[#0052CC] transform rotate-45" />
-                <div className="absolute bottom-[15%] right-[10%] w-4 h-4 bg-[#36B37E] transform rotate-45" />
-                <div className="absolute bottom-[20%] left-[15%] w-4 h-4 bg-[#0052CC] transform rotate-45" />
-            </div>
 
             <div className="w-full max-w-[400px] bg-white shadow-lg rounded-lg relative z-10">
                 <div className="text-center space-y-6 p-6 border-b border-gray-200">
@@ -170,22 +152,6 @@ export default function SignIn() {
                         )}
                     </button>
                 </form>
-
-                <div className="p-6 border-t border-gray-200 space-y-6 text-sm">
-                    <div className="flex justify-center space-x-2">
-                        <a href="#" className="text-[#0052CC] hover:underline">
-                            Can't log in?
-                        </a>
-                        <span>•</span>
-                        <Link to="/authentication/sign-up" className="text-[#0052CC] hover:underline">
-                            Create an account
-                        </Link>
-                    </div>
-
-                    <div className="text-center space-y-2">
-                        <img src={logo} alt="Jivar" className="h-8 mx-auto" />
-                    </div>
-                </div>
             </div>
         </div>
     );

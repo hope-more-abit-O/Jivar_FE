@@ -1,30 +1,40 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios'; // Import axios
+import Cookies from 'js-cookie'; // Import js-cookie
 import { ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button } from "@material-tailwind/react";
-import logo from '../assets/7537044.jpg'
-
+import { Button, Alert, AlertDescription } from "@material-tailwind/react"; // Import Alert for notifications
+import logo from '../assets/7537044.jpg';
+import { useLocation } from 'react-router-dom';
 
 export default function JivarCreateProject() {
     const navigate = useNavigate();
+    const location = useLocation();
+    const { message } = location.state || {};
 
     const handleGoBack = () => {
-        navigate(-1); // This will take the user back to the previous page in the history
+        navigate(-1); // Go back to the previous page in the history
     };
+
     const [formData, setFormData] = useState({
         name: '',
-        key: ''
+        description: '',
+        budget: ''
     });
 
     const [errors, setErrors] = useState({
         name: '',
-        key: ''
+        description: '',
+        budget: ''
     });
 
     const [touched, setTouched] = useState({
         name: false,
-        key: false
+        description: false,
+        budget: false
     });
+
+    const [successMessage, setSuccessMessage] = useState(null); // State for alert message
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -33,7 +43,7 @@ export default function JivarCreateProject() {
             [name]: value
         }));
 
-        // Clear error when user starts typing
+        // Clear error when the user starts typing
         if (errors[name]) {
             setErrors(prev => ({
                 ...prev,
@@ -57,7 +67,11 @@ export default function JivarCreateProject() {
         if (!value.trim()) {
             error = field === 'name'
                 ? 'Your project must have a name'
-                : 'Your project must have a key';
+                : field === 'description'
+                    ? 'Your project must have a description'
+                    : 'Your project must have a budget';
+        } else if (field === 'budget' && isNaN(parseFloat(value))) {
+            error = 'Budget must be a valid number';
         }
 
         setErrors(prev => ({
@@ -68,41 +82,86 @@ export default function JivarCreateProject() {
         return !error;
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         const nameValid = validateField('name', formData.name);
-        const keyValid = validateField('key', formData.key);
+        const descriptionValid = validateField('description', formData.description);
+        const budgetValid = validateField('budget', formData.budget);
 
         setTouched({
             name: true,
-            key: true
+            description: true,
+            budget: true
         });
 
-        if (nameValid && keyValid) {
-            console.log('Form submitted:', formData);
+        if (nameValid && descriptionValid && budgetValid) {
+            const accessToken = Cookies.get('accessToken');
+
+            try {
+                const response = await axios.post(
+                    'http://192.168.2.223:5002/api/Project',
+                    {
+                        name: formData.name,
+                        description: formData.description,
+                        budget: parseFloat(formData.budget)
+                    },
+                    {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${accessToken}`
+                        }
+                    }
+                );
+
+                console.log('Create Project Response:', response);
+
+                if (response.status === 200) {
+                    const newProjectId = response.data.id;
+                    const successMessage = response.data.message;
+
+                    const projectDetails = await axios.get(
+                        `http://192.168.2.223:5002/api/Project/${newProjectId}`,
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${accessToken}`
+                            }
+                        }
+                    );
+
+                    console.log('New Project Details:', projectDetails.data);
+
+                    navigate(`/jivar/project/${newProjectId}/board`, {
+                        state: { message: successMessage }
+                    });
+                }
+            } catch (error) {
+                console.error('Error creating project:', error.response?.data || error.message);
+            }
         }
     };
 
     return (
         <div className="min-h-screen bg-white">
-            {/* Header */}
+            {message && (
+                <Alert variant="default" className="fixed top-4 right-4 w-auto max-w-sm bg-green-500 text-white">
+                    {message}
+                </Alert>
+            )}
+
             <div className="border-b border-gray-200 px-6 py-4">
                 <Button
                     variant="text"
                     className="flex items-center text-[#42526E] hover:text-[#172B4D] normal-case px-0 text-base"
                     onClick={handleGoBack}
-                    
                 >
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back to previous page
                 </Button>
             </div>
 
-            {/* Main Content */}
             <div className="max-w-screen-xl mx-auto px-6 py-8">
                 <div className="flex gap-8">
-                    {/* Left Section - Form */}
                     <div className="flex-1">
                         <h1 className="text-2xl font-semibold text-[#172B4D] mb-4">
                             Add project details
@@ -138,26 +197,46 @@ export default function JivarCreateProject() {
                             </div>
 
                             <div>
-                                <label htmlFor="key" className="block text-sm font-medium text-[#172B4D] mb-1">
-                                    Key<span className="text-red-500">*</span>
+                                <label htmlFor="description" className="block text-sm font-medium text-[#172B4D] mb-1">
+                                    Description<span className="text-red-500">*</span>
                                 </label>
                                 <input
-                                    id="key"
-                                    name="key"
+                                    id="description"
+                                    name="description"
                                     type="text"
-                                    value={formData.key}
+                                    value={formData.description}
                                     onChange={handleChange}
-                                    onBlur={() => handleBlur('key')}
-                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${touched.key && errors.key ? 'border-red-500' : 'border-gray-300'
+                                    onBlur={() => handleBlur('description')}
+                                    placeholder="Provide a brief description of your project..."
+                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${touched.description && errors.description ? 'border-red-500' : 'border-gray-300'
                                         }`}
                                 />
-                                {touched.key && errors.key && (
-                                    <p className="mt-1 text-sm text-red-500">{errors.key}</p>
+                                {touched.description && errors.description && (
+                                    <p className="mt-1 text-sm text-red-500">{errors.description}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label htmlFor="budget" className="block text-sm font-medium text-[#172B4D] mb-1">
+                                    Budget (Unit: $)<span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    id="budget"
+                                    name="budget"
+                                    type="number"
+                                    value={formData.budget}
+                                    onChange={handleChange}
+                                    onBlur={() => handleBlur('budget')}
+                                    placeholder="Enter your project budget"
+                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${touched.budget && errors.budget ? 'border-red-500' : 'border-gray-300'
+                                        }`}
+                                />
+                                {touched.budget && errors.budget && (
+                                    <p className="mt-1 text-sm text-red-500">{errors.budget}</p>
                                 )}
                             </div>
                         </form>
                     </div>
-
                     <div className="w-[400px]">
                         <div className="bg-gray-50 rounded-lg p-6 mb-6">
                             <div className="flex justify-between items-center mb-4">
@@ -223,6 +302,6 @@ export default function JivarCreateProject() {
                     </button>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

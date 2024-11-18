@@ -52,9 +52,8 @@ export default function SignUp() {
       }
     };
     
-
     try {
-      const response = await axios.post("http://192.168.1.9:5002/api/v1/auth/create", data, {
+      const response = await axios.post("http://192.168.2.223:5002/api/v1/auth/create", data, {
         headers: {
           "Content-Type": "multipart/form-data",
         },

@@ -7,27 +7,27 @@ import {
     Button,
     Input,
     IconButton,
-    Option,
-    Select
+    Tooltip,
 } from "@material-tailwind/react";
-import { ChevronDownIcon, MagnifyingGlassIcon, StarIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon, ChevronUpIcon, StarIcon } from "@heroicons/react/24/outline";
 import { EllipsisVerticalIcon } from "@heroicons/react/24/solid";
 import Navigation from './navigation/navigation';
 
 export default function ViewAllProjects() {
     const [projects, setProjects] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [filterProduct, setFilterProduct] = useState('');
-    const [sortOption, setSortOption] = useState('desc');
-    const [selectedVersion, setSelectedVersion] = useState("");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [sortConfig, setSortConfig] = useState({
+        key: 'createTime',
+        direction: 'desc'
+    });
+    const [sortOption, setSortOption] = useState('desc');
+
+    const projectsPerPage = 10;
     const navigate = useNavigate();
 
-    const sortOptions = [
-        { value: 'desc', label: 'Newest to Oldest' },
-        { value: 'asc', label: 'Oldest to Newest' }
-    ];
     useEffect(() => {
         const fetchProjects = async () => {
             const token = Cookies.get('accessToken');
@@ -37,8 +37,7 @@ export default function ViewAllProjects() {
             }
 
             try {
-                const userId = Cookies.get('account_id');
-                const res = await fetch(`http://localhost:8008/project?project_roles.account_id=${userId}`, {
+                const res = await fetch(`http://192.168.2.223:5002/api/Project?includeRole=true`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                     },
@@ -48,10 +47,9 @@ export default function ViewAllProjects() {
                     throw new Error(`HTTP error! status: ${res.status}`);
                 }
 
-                const data = await res.json();
-                setProjects(data);
+                const response = await res.json();
+                setProjects(response.data || []);
             } catch (error) {
-                console.error("Failed to fetch projects:", error);
                 setError("Failed to load projects. Please try again later.");
             } finally {
                 setLoading(false);
@@ -61,22 +59,66 @@ export default function ViewAllProjects() {
         fetchProjects();
     }, [navigate]);
 
-    const handleSortChange = (e) => {
-        setSortOption(e.target.value);
+    const handleSearchChange = (e) => {
+        setSearchTerm(e.target.value);
     };
 
-    const sortedProjects = [...projects]
-    .filter(project => project.status === "ACTIVE")
-    .sort((a, b) => {
-        const dateA = new Date(a.create_time);
-        const dateB = new Date(b.create_time);
-        return sortOption === 'desc' ? dateB - dateA : dateA - dateB;
-    });
+    const requestSort = (key) => {
+        let direction = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
 
-    const filteredProjects = sortedProjects.filter(project =>
-        project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.description.toLowerCase().includes(searchTerm.toLowerCase())
+    const handleSortOptionChange = (e) => {
+        setSortOption(e.target.value);
+        setSortConfig({ key: 'createTime', direction: e.target.value });
+    };
+
+    const getSortedProjects = () => {
+        const sortedProjects = [...projects].filter((project) =>
+            project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            project.description.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+        return sortedProjects.sort((a, b) => {
+            if (!a[sortConfig.key] || !b[sortConfig.key]) return 0;
+
+            const aValue = a[sortConfig.key].toString().toLowerCase();
+            const bValue = b[sortConfig.key].toString().toLowerCase();
+
+            if (sortConfig.direction === 'asc') {
+                return aValue > bValue ? 1 : -1;
+            }
+            return aValue < bValue ? 1 : -1;
+        });
+    };
+
+    const getSortIcon = (columnKey) => {
+        if (sortConfig.key !== columnKey) {
+            return null;
+        }
+        return sortConfig.direction === 'asc' ?
+            <ChevronUpIcon className="h-4 w-4 inline-block ml-1" /> :
+            <ChevronDownIcon className="h-4 w-4 inline-block ml-1" />;
+    };
+
+    const getTooltipContent = (columnName) => {
+        if (sortConfig.key === columnName) {
+            return `${columnName} • ${sortConfig.direction === 'asc' ? 'Z → A' : 'A → Z'}`;
+        }
+        return `${columnName} • A → Z`;
+    };
+
+    const paginatedProjects = getSortedProjects().slice(
+        (currentPage - 1) * projectsPerPage,
+        currentPage * projectsPerPage
     );
+
+    const handlePageChange = (page) => {
+        setCurrentPage(page);
+    };
 
     const handleProjectClick = (projectId) => {
         navigate(`/jivar/project/${projectId}/board`);
@@ -86,7 +128,9 @@ export default function ViewAllProjects() {
         return (
             <>
                 <Navigation />
-                <div className="flex justify-center items-center h-screen">Loading...</div>
+                <div className="flex justify-center items-center h-screen">
+                    <div className="spinner-border text-blue-500" role="status"></div>
+                </div>
             </>
         );
     }
@@ -95,10 +139,24 @@ export default function ViewAllProjects() {
         return (
             <>
                 <Navigation />
-                <div className="flex justify-center items-center h-screen text-red-500">{error}</div>
+                <div className="flex flex-col justify-center items-center h-screen text-red-500">
+                    <Typography>{error}</Typography>
+                    <Button
+                        onClick={() => window.location.reload()}
+                        className="mt-4 bg-blue-500 text-white"
+                    >
+                        Retry
+                    </Button>
+                </div>
             </>
         );
     }
+
+    const columns = [
+        { key: 'name', label: 'Name' },
+        { key: 'description', label: 'Description' },
+        { key: 'createBy', label: 'Owner' },
+    ];
 
     return (
         <>
@@ -119,31 +177,26 @@ export default function ViewAllProjects() {
                 </div>
 
                 <div className="flex items-center gap-4 mb-8">
-                    <div className="relative flex w-full max-w-[24rem]">
+                    <div className="relative flex w-full max-w-[25rem]">
                         <Input
                             type="search"
                             placeholder="Search projects"
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pr-20 rounded-md border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                            onChange={handleSearchChange}
+                            className="pr-20 rounded-md text-start placeholder:text-start border border-gray-300 focus:ring-2 h-[2.25rem]"
                             containerProps={{
-                                className: "min-w-0",
+                                className: "",
                             }}
                         />
                     </div>
-
                     <div className="relative w-64">
                         <select
                             value={sortOption}
-                            onChange={handleSortChange}
+                            onChange={handleSortOptionChange}
                             className="appearance-none w-full h-[42px] bg-white border border-gray-300 text-gray-700 py-3 px-4 pr-8 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 text-sm"
                         >
-                            <option value="" disabled hidden>Sort by</option>
-                            {sortOptions.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
+                            <option value="desc">Newest to Oldest</option>
+                            <option value="asc">Oldest to Newest</option>
                         </select>
                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
                             <ChevronDownIcon className="h-5 w-5" />
@@ -151,60 +204,96 @@ export default function ViewAllProjects() {
                     </div>
                 </div>
 
+                {paginatedProjects.length === 0 ? (
+                    <Typography className="text-center text-gray-500 py-4">
+                        No projects found.
+                    </Typography>
+                ) : (
+                    <Card className="overflow-auto max-h-[500px] w-full">
+                        <table className="w-full min-w-max table-auto text-left">
+                            <thead>
+                                <tr>
+                                    {columns.map((column) => (
+                                        <th
+                                            key={column.key}
+                                            className="border-b border-blue-gray-100 bg-blue-gray-50 p-4 cursor-pointer hover:bg-blue-gray-100 transition-colors relative"
+                                            onClick={() => requestSort(column.key)}
+                                        >
+                                            <Tooltip content={getTooltipContent(column.label)} placement="top">
+                                                <div className="inline-block">
+                                                    <Typography
+                                                        variant="small"
+                                                        color="blue-gray"
+                                                        className="font-normal leading-none opacity-70 flex items-center"
+                                                    >
+                                                        {column.label}
+                                                        {getSortIcon(column.key)}
+                                                    </Typography>
+                                                </div>
+                                            </Tooltip>
+                                        </th>
 
-                <Card className="overflow-scroll h-full w-full">
-                    <table className="w-full min-w-max table-auto text-left">
-                        <thead>
-                            <tr>
-                                {["Name", "Description", "Creator", "Actions"].map((head) => (
-                                    <th key={head} className="border-b border-blue-gray-100 bg-blue-gray-50 p-4">
+                                    ))}
+                                    <th className="border-b border-blue-gray-100 bg-blue-gray-50 p-4">
                                         <Typography
                                             variant="small"
                                             color="blue-gray"
                                             className="font-normal leading-none opacity-70"
                                         >
-                                            {head}
+                                            Actions
                                         </Typography>
                                     </th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredProjects.map((project, index) => {
-                                const isLast = index === filteredProjects.length - 1;
-                                const classes = isLast ? "p-4" : "p-4 border-b border-blue-gray-50";
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {paginatedProjects.map((project, index) => {
+                                    const isLast = index === paginatedProjects.length - 1;
+                                    const classes = isLast ? "p-4" : "p-4 border-b border-blue-gray-50";
 
-                                return (
-                                    <tr key={project.id} className="hover:bg-blue-gray-50 cursor-pointer" onClick={() => handleProjectClick(project.id)}>
-                                        <td className={classes}>
-                                            <div className="flex items-center gap-3">
-                                                <StarIcon className="h-5 w-5 text-blue-gray-400" />
+                                    return (
+                                        <tr key={project.id} className="hover:bg-blue-gray-50 cursor-pointer" onClick={() => handleProjectClick(project.id)}>
+                                            <td className={classes}>
+                                                <div className="flex items-center gap-3">
+                                                    <StarIcon className="h-5 w-5 text-blue-gray-400" />
+                                                    <Typography variant="small" color="blue-gray" className="font-normal">
+                                                        {project.name}
+                                                    </Typography>
+                                                </div>
+                                            </td>
+                                            <td className={classes}>
                                                 <Typography variant="small" color="blue-gray" className="font-normal">
-                                                    {project.name}
+                                                    {project.description}
                                                 </Typography>
-                                            </div>
-                                        </td>
-                                        <td className={classes}>
-                                            <Typography variant="small" color="blue-gray" className="font-normal">
-                                                {project.description}
-                                            </Typography>
-                                        </td>
-                                        <td className={classes}>
-                                            <Typography variant="small" color="blue-gray" className="font-normal">
-                                                {project.create_by[0].username}
-                                            </Typography>
-                                        </td>
-                                        <td className={classes}>
-                                            <IconButton variant="text" color="blue-gray">
-                                                <EllipsisVerticalIcon className="h-5 w-5" />
-                                            </IconButton>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </Card>
+                                            </td>
+                                            <td className={classes}>
+                                                <Typography variant="small" color="blue-gray" className="font-normal">
+                                                    {project.createBy?.name || "Unknown"}
+                                                </Typography>
+                                            </td>
+                                            <td className={classes}>
+                                                <IconButton variant="text" color="blue-gray">
+                                                    <EllipsisVerticalIcon className="h-5 w-5" />
+                                                </IconButton>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </Card>
+                )}
+
+                <div className="flex justify-center mt-6">
+                    {Array.from({ length: Math.ceil(getSortedProjects().length / projectsPerPage) }).map((_, index) => (
+                        <button
+                            key={index}
+                            onClick={() => handlePageChange(index + 1)}
+                            className={`px-4 py-2 mx-1 rounded-lg ${currentPage === index + 1 ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+                        >
+                            {index + 1}
+                        </button>
+                    ))}
+                </div>
             </div>
         </>
     );
