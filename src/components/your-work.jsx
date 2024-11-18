@@ -1,18 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import logo from '../assets/7537044.jpg';
-import {
-    Search,
-    Bell,
-    HelpCircle,
-    Settings,
-    ChevronDown,
-    Grid,
-    MoreHorizontal,
-    Plus
-} from 'lucide-react';
+import { Alert } from '@material-tailwind/react';
+import { Transition } from '@headlessui/react';
 import Navigation from './navigation/navigation';
-
 
 export default function YourWork() {
     const [isProjectsOpen, setIsProjectsOpen] = useState(false);
@@ -21,6 +12,10 @@ export default function YourWork() {
     const dropdownRef = useRef(null);
     const location = useLocation();
 
+    // Success message from login
+    const [successMessage, setSuccessMessage] = useState(location.state?.successMessage || '');
+
+    // Close dropdown when clicking outside
     useEffect(() => {
         function handleClickOutside(event) {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -34,13 +29,19 @@ export default function YourWork() {
         };
     }, []);
 
-    const handleItemClick = (itemName) => {
-        setActiveItem(itemName);
-    };
+    useEffect(() => {
+        // Clear success message after 5 seconds
+        if (successMessage) {
+            const timer = setTimeout(() => {
+                setSuccessMessage('');
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [successMessage]);
 
-    const handleSubItemClick = (subItemName) =>{
+    const handleSubItemClick = (subItemName) => {
         setActiveSubItem(subItemName);
-    }
+    };
 
     const navItems = [
         { name: 'Your work', path: '/jivar/your-work' },
@@ -56,7 +57,26 @@ export default function YourWork() {
 
     return (
         <div className="min-h-screen bg-white">
-                <Navigation/>
+            {successMessage && (
+                <Transition
+                    show={!!successMessage}
+                    enter="transition-opacity duration-300"
+                    enterFrom="opacity-0"
+                    enterTo="opacity-100"
+                    leave="transition-opacity duration-300"
+                    leaveFrom="opacity-100"
+                    leaveTo="opacity-0"
+                >
+                    <Alert
+                        color="green"
+                        className="fixed top-5 right-5 z-50 w-[300px] shadow-lg font-medium border-[#2ec946] bg-[#2ec946]/10 text-[#2ec946]"
+                    >
+                        {successMessage}
+                    </Alert>
+                </Transition>
+            )}
+
+            <Navigation />
 
             <main className="max-w-7xl mx-auto px-6 py-6">
                 <h1 className="text-2xl font-semibold text-[#172B4D] mb-6">Your work</h1>
@@ -66,10 +86,11 @@ export default function YourWork() {
                         {subNavItems.map((item) => (
                             <button
                                 key={item}
-                                className={`pb-2 ${activeSubItem === item
+                                className={`pb-2 ${
+                                    activeSubItem === item
                                         ? 'border-b-2 border-[#0052CC] text-[#0052CC]'
                                         : 'text-[#42526E] hover:text-[#172B4D]'
-                                    }`}
+                                }`}
                                 onClick={() => handleSubItemClick(item)}
                             >
                                 {item}

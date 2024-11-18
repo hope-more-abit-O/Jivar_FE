@@ -1,0 +1,467 @@
+{
+    "account": [
+      {
+        "id": 1,
+        "email": "john.doe@example.com",
+        "password": "hashed_password_1",
+        "phone": "12345678901",
+        "username": "johndoe",
+        "birthday": "1990-01-01T00:00:00",
+        "gender": "male",
+        "create_time": "2023-01-01T10:00:00",
+        "status": "ACTIVE",
+        "role": "USER"
+      },
+      {
+        "id": 2,
+        "email": "jane.smith@example.com",
+        "password": "hashed_password_2",
+        "phone": "98765432101",
+        "username": "janesmith",
+        "birthday": "1992-05-15T00:00:00",
+        "gender": "female",
+        "create_time": "2023-02-01T11:30:00",
+        "status": "ACTIVE",
+        "role": "USER"
+      },
+      {
+        "id": 3,
+        "email": "alice.jones@example.com",
+        "password": "hashed_password_3",
+        "phone": "56789012345",
+        "username": "alicejones",
+        "birthday": "1988-08-25T00:00:00",
+        "gender": "female",
+        "create_time": "2023-03-10T09:15:00",
+        "status": "ACTIVE",
+        "role": "USER"
+      },
+      {
+        "id": 4,
+        "email": "bob.brown@example.com",
+        "password": "hashed_password_4",
+        "phone": "45678901234",
+        "username": "bobbrown",
+        "birthday": "1985-12-10T00:00:00",
+        "gender": "male",
+        "create_time": "2023-04-05T14:45:00",
+        "status": "ACTIVE",
+        "role": "USER"
+      },
+      {
+        "id": 5,
+        "email": "admin",
+        "password": "admin",
+        "phone": "456789012334",
+        "username": "admin",
+        "birthday": "1985-12-10T00:00:00",
+        "gender": "male",
+        "create_time": "2023-04-05T14:45:00",
+        "status": "ACTIVE",
+        "role": "ADMIN"
+      }
+    ],
+    "account_token": [
+      {
+        "id": 1,
+        "account_id": 1,
+        "accessToken": "sampleAccessToken123",
+        "refreshToken": "sampleRefreshToken123",
+        "token_type": "Bearer",
+        "expired": false,
+        "revoked": false
+      },
+      {
+        "id": 2,
+        "account_id": 2,
+        "accessToken": "xzxzxzxzx123",
+        "refreshToken": "xzxzxzxzx123",
+        "token_type": "Bearer",
+        "expired": false,
+        "revoked": false
+      },
+      {
+        "id": 3,
+        "account_id": 3,
+        "accessToken": "aliceAccessToken456",
+        "refreshToken": "aliceRefreshToken456",
+        "token_type": "Bearer",
+        "expired": false,
+        "revoked": false
+      },
+      {
+        "id": 4,
+        "account_id": 4,
+        "accessToken": "bobAccessToken789",
+        "refreshToken": "bobRefreshToken789",
+        "token_type": "Bearer",
+        "expired": true,
+        "revoked": false
+      }
+    ],
+    "project": [
+      {
+        "id": 1,
+        "name": "Project Alpha",
+        "description": "A major project",
+        "create_by": [
+          {
+            "account_id": 2,
+            "username": "janesmith"
+          }
+        ],
+        "create_time": "2023-06-01T09:00:00",
+        "complete_time": null,
+        "budget": 50000.00,
+        "status": "ACTIVE",
+        "project_roles": [
+          {
+            "account_id": 2,
+            "username": "janesmith",
+            "role": "PM",
+            "project_id": 1
+          },
+          {
+            "account_id": 3,
+            "username": "alicejones",
+            "role": "Manager",
+            "project_id": 1
+          },
+          {
+            "account_id": 1,
+            "username": "johndoe",
+            "role": "Developer",
+            "project_id": 1
+          },
+          {
+            "account_id": 4,
+            "username": "bobbrown",
+            "role": "Developer",
+            "project_id": 1
+          }
+        ],
+        "sprints": [
+          {
+            "id": 1,
+            "name": "Sprint 1",
+            "start_date": "2023-06-01T09:00:00",
+            "end_date": "2023-06-30T09:00:00",
+            "status": "ACTIVE",
+            "tasks": [
+              {
+                "id": 1,
+                "title": "Task 1",
+                "description": "Task description 1",
+                "create_by": 1,
+                "create_time": "2023-06-01T09:00:00",
+                "assign_by": 2,
+                "assignee": 4,
+                "complete_time": null,
+                "status": "TO DO",
+                "task_document": [
+                  {
+                    "document_id": 1,
+                    "name": "Document 1",
+                    "file_path": "/files/doc1.pdf",
+                    "upload_date": "2023-06-01T09:00:00",
+                    "upload_by": 3
+                  }
+                ],
+                "sub_tasks": [
+                  {
+                    "id": 1,
+                    "title": "Sub Task 1.1",
+                    "description": "Sub task description 1.1",
+                    "status": "TO DO"
+                  },
+                  {
+                    "id": 2,
+                    "title": "Sub Task 1.2",
+                    "description": "Sub task description 1.2",
+                    "status": "DONE"
+                  }
+                ],
+                "comments": [
+                  {
+                    "id": 1,
+                    "content": "This is a comment on task 1",
+                    "task_id": 1,
+                    "create_by": 1,
+                    "parent_id": null,
+                    "create_time": "2023-06-10T10:00:00",
+                    "status": "Active"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "name": "Sprint 2",
+            "start_date": "2023-07-15T10:00:00",
+            "end_date": "2023-07-30T10:00:00",
+            "status": "ACTIVE",
+            "tasks": [
+              {
+                "id": 2,
+                "title": "Task 2",
+                "description": "Task description 2",
+                "create_by": 4,
+                "create_time": "2023-07-15T10:00:00",
+                "assign_by": 4,
+                "assignee": 4,
+                "complete_time": null,
+                "status": "IN PROGRESS",
+                "task_document": [
+                  {
+                    "document_id": 2,
+                    "name": "Document 2",
+                    "file_path": "/files/doc2.pdf",
+                    "upload_date": "2023-07-15T10:00:00",
+                    "upload_by": 4
+                  }
+                ],
+                "sub_tasks": [
+                  {
+                    "id": 3,
+                    "title": "Sub Task 2.1",
+                    "description": "Sub task description 2.1",
+                    "status": "TO DO"
+                  }
+                ],
+                "comments": [
+                  {
+                    "id": 2,
+                    "content": "This is a comment on task 2",
+                    "task_id": 2,
+                    "create_by": 4,
+                    "parent_id": null,
+                    "create_time": "2023-07-20T10:00:00",
+                    "status": "Active"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "name": "Project Beta",
+        "description": "A small project",
+        "create_by": [
+            {
+              "account_id": 2,
+              "username": "janesmith"
+            }
+          ],
+        "create_time": "2023-07-15T10:00:00",
+        "complete_time": null,
+        "budget": 15000.00,
+        "status": "ACTIVE",
+        "project_roles": [
+          {
+            "account_id": 2,
+            "username": "janesmith",
+            "role": "PM",
+            "project_id": 2
+          },
+          {
+            "account_id": 3,
+            "username": "alicejones",
+            "role": "Manager",
+            "project_id": 2
+          },
+          {
+            "account_id": 4,
+            "username": "bobbrown",
+            "role": "Developer",
+            "project_id": 2
+          }
+        ],
+        "sprints": [
+          {
+            "id": 2,
+            "name": "Sprint 1",
+            "start_date": "2023-07-15T10:00:00",
+            "end_date": "2023-07-30T10:00:00",
+            "status": "ACTIVE",
+            "tasks": [
+              {
+                "id": 2,
+                "title": "Task 2",
+                "description": "Task description 2",
+                "create_by": 4,
+                "create_time": "2023-07-15T10:00:00",
+                "assign_by": 4,
+                "assignee": 4,
+                "complete_time": null,
+                "status": "IN PROGRESS",
+                "task_document": [
+                  {
+                    "document_id": 2,
+                    "name": "Document 2",
+                    "file_path": "/files/doc2.pdf",
+                    "upload_date": "2023-07-15T10:00:00",
+                    "upload_by": 4
+                  }
+                ],
+                "sub_tasks": [
+                  {
+                    "id": 3,
+                    "title": "Sub Task 2.1",
+                    "description": "Sub task description 2.1",
+                    "status": "TO DO"
+                  }
+                ],
+                "comments": [
+                  {
+                    "id": 2,
+                    "content": "This is a comment on task 2",
+                    "task_id": 2,
+                    "create_by": 4,
+                    "parent_id": null,
+                    "create_time": "2023-07-20T10:00:00",
+                    "status": "Active"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "comment": [
+      {
+        "id": 1,
+        "content": "This is a comment on task 1",
+        "task_id": 1,
+        "create_by": 1,
+        "parent_id": null,
+        "create_time": "2023-06-10T10:00:00",
+        "status": "Active"
+      },
+      {
+        "id": 2,
+        "content": "This is a comment on task 2",
+        "task_id": 2,
+        "create_by": 4,
+        "parent_id": null,
+        "create_time": "2023-07-20T10:00:00",
+        "status": "Active"
+      }
+    ],
+    "document": [
+      {
+        "document_id": 1,
+        "name": "Document 1",
+        "file_path": "/files/doc1.pdf",
+        "upload_date": "2023-06-01T09:00:00",
+        "status": "ACTIVE",
+        "upload_by": 3
+      },
+      {
+        "document_id": 2,
+        "name": "Document 2",
+        "file_path": "/files/doc2.pdf",
+        "upload_date": "2023-07-15T10:00:00",
+        "status": "ACTIVE",
+        "upload_by": 4
+      }
+    ],
+    "sprint": [
+      {
+        "id": 1,
+        "name": "Sprint 1",
+        "start_date": "2023-06-01T09:00:00",
+        "end_date": "2023-06-30T09:00:00",
+        "status": "ACTIVE",
+        "tasks": [
+          {
+            "id": 1,
+            "title": "Task 1",
+            "status": "IN PROGRESS",
+            "description": "Task description 1"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "name": "Sprint 2",
+        "start_date": "2023-07-15T10:00:00",
+        "end_date": "2023-07-30T10:00:00",
+        "status": "ACTIVE",
+        "tasks": [
+          {
+            "id": 2,
+            "title": "Task 2",
+            "status": "TO DO",
+            "description": "Task description 2"
+          }
+        ]
+      }
+    ],
+    "sub_task": [
+      {
+        "id": 1,
+        "title": "Sub Task 1.1",
+        "description": "Sub task description 1.1",
+        "status": "TO DO"
+      },
+      {
+        "id": 2,
+        "title": "Sub Task 1.2",
+        "description": "Sub task description 1.2",
+        "status": "DONE"
+      },
+      {
+        "id": 3,
+        "title": "Sub Task 2.1",
+        "description": "Sub task description 2.1",
+        "status": "TO DO"
+      }
+    ],
+    "project_role": [
+      {
+        "account_id": 1,
+        "username": "johndoe",
+        "role": "Developer",
+        "project_id": 1
+      },
+      {
+        "account_id": 2,
+        "username": "janesmith",
+        "role": "PM",
+        "project_id": [1, 2]
+      },
+      {
+        "account_id": 3,
+        "username": "alicejones",
+        "role": "Manager",
+        "project_id": [1, 2]
+      },
+      {
+        "account_id": 4,
+        "username": "bobbrown",
+        "role": "Developer",
+        "project_id": [1, 2]
+      }
+    ],
+    "backlog": [
+      {
+        "id": 1,
+        "name": "Backlog 1",
+        "project_id": 1,
+        "description": "Backlog item 1",
+        "status": "Active"
+      },
+      {
+        "id": 2,
+        "name": "Backlog 2",
+        "project_id": 2,
+        "description": "Backlog item 2",
+        "status": "Active"
+      }
+    ]
+  }
+  
