@@ -10,6 +10,8 @@
     box-sizing: border-box;
     font-family: 'poppins', sans-serif;
     font-weight: bold;
+    overflow-x: visible;
+    overflow-y: visible;
 }
 a{
     text-decoration: none;

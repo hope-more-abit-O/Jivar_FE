@@ -37,7 +37,7 @@ export default function ViewAllProjects() {
             }
 
             try {
-                const res = await fetch(`http://192.168.2.223:5002/api/Project?includeRole=true`, {
+                const res = await fetch(`http://192.168.2.223:5002/api/v1/user?includeRole=true&includeSprint=true&includeTask=true`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                     },

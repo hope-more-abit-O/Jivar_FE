@@ -17,6 +17,7 @@ import {
 } from "@material-tailwind/react";
 import Cookies from 'js-cookie';
 import Navigation from '../navigation/navigation';
+import { data } from 'autoprefixer';
 
 export default function KanbanProject() {
     const [project, setProject] = useState(null);
@@ -29,6 +30,17 @@ export default function KanbanProject() {
     const [searchQuery, setSearchQuery] = useState('');
     const [hoveredColumn, setHoveredColumn] = useState(null);
     const [isSprintDialogOpen, setIsSprintDialogOpen] = useState(false);
+    const [updateUI, setUpdateUI] = useState(false);
+    const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
+    const [searchedUser, setSearchedUser] = useState(null);
+    const [searchAccountId, setSearchAccountId] = useState('');
+    const [role, setRole] = useState('');
+    const [isLoadingUser, setIsLoadingUser] = useState(false);
+
+    const handleAddUserClick = () => {
+        setIsAddUserDialogOpen(true);
+    };
+    
     const [newSprintData, setNewSprintData] = useState({
         name: '',
         startDate: '',
@@ -130,6 +142,7 @@ export default function KanbanProject() {
         };
 
         if (projectId) {
+            Cookies.set('projectId', projectId)
             fetchProject();
         } else {
             setError('Invalid project ID.');
@@ -163,6 +176,66 @@ export default function KanbanProject() {
         setNewSprint((prev) => ({ ...prev, [name]: value }));
     };
 
+    const handleSearchUser = async () => {
+        if (!searchAccountId) return;
+    
+        try {
+            setIsLoadingUser(true);
+            const response = await axios.get(
+                `http://192.168.2.223:5002/api/v1/account/info/user/${searchAccountId}`
+            );
+            setSearchedUser(response.data);
+        } catch (error) {
+            console.error("Error fetching user info:", error);
+            setSearchedUser(null);
+        } finally {
+            setIsLoadingUser(false);
+        }
+    };
+    
+    const handleAddUserToProject = async () => {
+        if (!searchedUser || !role) return;
+    
+        try {
+            const response = await axios.post('http://192.168.2.223:5002/api/ProjectRole', {
+                accountId: searchedUser.accountId,
+                projectId: project.id,
+                role: role,
+            });
+    
+            if (response.status === 200) {
+                setProject((prev) => ({
+                    ...prev,
+                    project_roles: [
+                        ...prev.project_roles,
+                        { account_id: searchedUser.accountId, username: searchedUser.name, role },
+                    ],
+                }));
+    
+                alert(`Success: User ${searchedUser.name} has been added to the project as ${role}.`);
+    
+                setIsAddUserDialogOpen(false);
+            }
+        } catch (error) {
+            if (error.response) {
+                if (error.response.status === 400) {
+                    console.error("Bad Request: ", error.response.data || "Invalid input");
+                    alert(`Error 400: ${error.response.data.message || "Invalid input"}`);
+                } else if (error.response.status === 500) {
+                    console.error("Server Error: ", error.response.data.message || "Internal server error");
+                    alert(`Error 500: ${error.response.data.message || "Internal server error"}`);
+                } else {
+                    console.error("Error: ", error.response.data.message || "An unexpected error occurred");
+                    alert(`Error ${error.response.status}: ${error.response.data.message || "An unexpected error occurred"}`);
+                }
+            } else {
+                console.error("Network or unknown error: ", error.message);
+                alert("An error occurred. Please check your network connection or try again later.");
+            }
+        }
+    };
+    
+
 
     const handleCreateSprintSubmit = async () => {
         try {
@@ -177,6 +250,8 @@ export default function KanbanProject() {
                     tasks: sprint.tasks || []
                 }))
             });
+            const response2 = await axios.get(`http://192.168.2.223:5002/api/Project/${projectId}?includeRole=true&includeSprint=true&includeTask=true`);
+            setProject(response2.data);
         } catch (error) {
             console.error('Failed to create sprint:', error);
             setError('Failed to create sprint. Please try again.');
@@ -204,6 +279,7 @@ export default function KanbanProject() {
     };
 
     const handleSprintClick = (sprintId) => {
+        console.log("Sprint ID clicked:", sprintId);
         setSelectedSprintId(sprintId);
     };
 
@@ -215,35 +291,102 @@ export default function KanbanProject() {
         setIsCreatingIssue(prev => ({ ...prev, [column]: true }));
     };
 
-    const handleCreateSubmit = (column) => {
-        if (newIssueText[column].trim() !== '') {
-            const newTask = {
-                id: Date.now(),
-                title: newIssueText[column],
-                description: '',
-                status: column.toUpperCase()
-            };
+    const handleCreateTask = async (sprintId, title, column) => {
+        console.log('Creating task for Sprint ID:', sprintId, 'with title:', title, 'in column:', column);
+        try {
+            const accessToken = Cookies.get('accessToken');
 
-            setProject(prevProject => {
-                const updatedSprints = prevProject.sprints.map(sprint => {
-                    if (sprint.id === selectedSprintId) {
-                        return {
-                            ...sprint,
-                            tasks: [...sprint.tasks, newTask]
-                        };
-                    }
-                    return sprint;
-                });
+            const createResponse = await axios.post(
+                `http://192.168.2.223:5002/api/v1/task?sprintId=${sprintId}`,
+                {
+                    title: title,
+                    description: null,
+                    assignBy: null,
+                    assignee: null,
+                    documentId: null,
+                    startDateSprintTask: null,
+                    endDateSprintTask: null
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+                }
+            );
 
-                return {
-                    ...prevProject,
-                    sprints: updatedSprints
+            if (createResponse.data.status === 200) {
+                const createdTask = createResponse.data.data;
+                console.log('Task created successfully:', createdTask);
+
+                const statusMap = {
+                    todo: 'TO_DO',
+                    inProgress: 'IN_PROGRESS',
+                    done: 'DONE'
                 };
-            });
 
-            setNewIssueText(prev => ({ ...prev, [column]: '' }));
+                const status = statusMap[column];
+                if (status) {
+                    await axios.put(
+                        `http://192.168.2.223:5002/api/v1/task/update-status/${createdTask.id}?status=${status}`,
+                        {},
+                        {
+                            headers: {
+                                Authorization: `Bearer ${accessToken}`,
+                            },
+                        }
+                    );
+                    console.log(`Task status updated to ${status}`);
+                }
+
+                const fetchResponse = await axios.get(
+                    `http://192.168.2.223:5002/api/v1/task/${createdTask.id}`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${accessToken}`,
+                        },
+                    }
+                );
+
+                const updatedTask = fetchResponse.data;
+                console.log('Fetched updated task:', updatedTask);
+
+                setProject((prevProject) => ({
+                    ...prevProject,
+                    sprints: prevProject.sprints.map((sprint) => {
+                        if (sprint.id === sprintId) {
+                            return {
+                                ...sprint,
+                                tasks: [...sprint.tasks, updatedTask],
+                            };
+                        }
+                        return sprint;
+                    }),
+                }));
+                localStorage.setItem('selectedSprintId', sprintId);
+
+                window.location.reload();
+
+            } else {
+                console.error('Task creation failed:', createResponse.data.message);
+            }
+        } catch (error) {
+            console.error('Error creating or updating task:', error.response?.data || error.message);
         }
     };
+
+
+    const handleCreateSubmit = (column) => {
+        const sprint = project.sprints.find((s) => s.id === selectedSprintId);
+
+        if (newIssueText[column].trim() !== '' && sprint) {
+            const title = newIssueText[column].trim();
+
+            handleCreateTask(sprint.id, title, column);
+
+            setNewIssueText((prev) => ({ ...prev, [column]: '' }));
+        }
+    };
+
 
     const handleTaskClick = (task) => {
         setSelectedTask(task);
@@ -573,6 +716,64 @@ export default function KanbanProject() {
         );
     };
 
+    const renderAddUserDialog = () => (
+        <Dialog
+            open={isAddUserDialogOpen}
+            handler={() => setIsAddUserDialogOpen(false)}
+            size="sm"
+        >
+            <DialogHeader>Add User to Project</DialogHeader>
+            <DialogBody>
+                <div className="space-y-4">
+                    <Input
+                        label="Account ID"
+                        value={searchAccountId}
+                        onChange={(e) => setSearchAccountId(e.target.value)}
+                        placeholder="Enter Account ID"
+                    />
+                    <Button
+                        color="blue"
+                        onClick={handleSearchUser}
+                        disabled={isLoadingUser}
+                    >
+                        {isLoadingUser ? "Searching..." : "Search User"}
+                    </Button>
+
+                    {searchedUser && (
+                        <div className="mt-4">
+                            <Typography variant="h6">
+                                User: {searchedUser.name || 'Unknown'}
+                            </Typography>
+                            <Input
+                                label="Role"
+                                value={role}
+                                onChange={(e) => setRole(e.target.value)}
+                                placeholder="Enter Role (e.g., Developer)"
+                            />
+                        </div>
+                    )}
+                </div>
+            </DialogBody>
+            <DialogFooter>
+                <Button
+                    variant="text"
+                    color="blue-gray"
+                    onClick={() => setIsAddUserDialogOpen(false)}
+                >
+                    Cancel
+                </Button>
+                <Button
+                    variant="filled"
+                    color="blue"
+                    onClick={handleAddUserToProject}
+                    disabled={!searchedUser || !role}
+                >
+                    Add User
+                </Button>
+            </DialogFooter>
+        </Dialog>
+    );
+
     const renderColumn = (title, tasks, column) => (
         <div
             className="w-[300px] bg-gray-100 p-2 py-1 rounded-sm relative"
@@ -589,7 +790,6 @@ export default function KanbanProject() {
             </div>
             <div>
                 {tasks.map((task) => {
-                    console.log('task', tasks);
                     const taskAssignee = project?.project_roles.find(
                         (role) => role.account_id === task.assignee
                     );
@@ -641,7 +841,7 @@ export default function KanbanProject() {
                             type="text"
                             placeholder="What needs to be done?"
                             value={newIssueText[column]}
-                            onChange={(e) => setNewIssueText(prev => ({ ...prev, [column]: e.target.value }))}
+                            onChange={(e) => setNewIssueText((prev) => ({ ...prev, [column]: e.target.value }))}
                             className="!border-0 focus:!border-0 ring-0 focus:ring-0 text-sm"
                             labelProps={{
                                 className: "hidden",
@@ -649,11 +849,28 @@ export default function KanbanProject() {
                             containerProps={{
                                 className: "min-w-0",
                             }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleCreateSubmit(column);
+                                }
+                            }}
                         />
                         <div className="flex justify-between items-center mt-2">
                             <div className="flex items-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4 text-blue-500">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    strokeWidth={1.5}
+                                    stroke="currentColor"
+                                    className="size-4 text-blue-500"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                                    />
                                 </svg>
                             </div>
                             <Button
@@ -753,7 +970,7 @@ export default function KanbanProject() {
                                         <div className="flex items-center justify-center w-8 h-8 rounded-full bg-red-500 text-white font-semibold group-hover:w-10 group-hover:h-10 group-hover:border-2 group-hover:border-white transition-all duration-200 ease-in-out">
                                             {role.username ? role.username.substring(0, 2).toUpperCase() : 'U'}
                                         </div>
-                                        <div className="absolute bottom-10 opacity-0 group-hover:opacity-100 group-hover:translate-y-1 text-sm bg-black text-white py-1 px-2 rounded shadow-lg transition-all duration-200 ease-in-out">
+                                        <div className="absolute bottom-10 opacity-0 group-hover:opacity-100 group-hover:translate-y-1 text-sm bg-black text-white py-1 px-2 rounded shadow-lg transition-all duration-200 ease-in-out z-50">
                                             {role.username || 'Unknown'}
                                         </div>
                                     </div>
@@ -792,6 +1009,7 @@ export default function KanbanProject() {
                                         strokeWidth={1.5}
                                         stroke="currentColor"
                                         className="w-5 h-5 text-black"
+                                        onClick={() => setIsAddUserDialogOpen(true)}
                                     >
                                         <path
                                             strokeLinecap="round"
@@ -799,6 +1017,7 @@ export default function KanbanProject() {
                                             d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z"
                                         />
                                     </svg>
+                                    {renderAddUserDialog()}
                                 </div>
 
                             </div>
@@ -901,10 +1120,10 @@ export default function KanbanProject() {
                                 >
                                     Back to Sprints list
                                 </Button>
-                                <div className="flex space-x-4">
+                                <div className="flex space-x-4" key={updateUI}>
                                     {renderColumn(
                                         'TO DO',
-                                        project.sprints.find((s) => s.id === selectedSprintId)?.tasks.filter((task) => task.status === 'TO DO') || [],
+                                        project.sprints.find((s) => s.id === selectedSprintId)?.tasks.filter((task) => task.status === 'TO_DO') || [],
                                         'todo'
                                     )}
                                     {renderColumn(
