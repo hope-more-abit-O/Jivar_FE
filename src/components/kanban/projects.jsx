@@ -998,7 +998,7 @@ export default function KanbanProject() {
       try {
         const accessToken = Cookies.get('accessToken');
         const response = await axios.delete(
-          `https://localhost:7150/api/v1/task/47${editableTask.id}`,
+          `http://localhost:5287/api/v1/task/47${editableTask.id}`,
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,

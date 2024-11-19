@@ -177,8 +177,6 @@ export default function Navigation() {
                                     </div>
                                 </div>
                             </div>
-
-                            {/* Manage Profile and Theme */}
                             <div className="p-3 border-b border-gray-200">
                                 <div className="space-y-1">
                                     <MenuItem className="hover:bg-blue-50/80 flex justify-start">
@@ -192,7 +190,6 @@ export default function Navigation() {
                                     </MenuItem>
                                 </div>
                             </div>
-
                             <MenuItem className="flex items-center gap-2 p-3 text-red-500 hover:bg-red-50/80" onClick={handleLogout}>
                                 <LogOut className="h-4 w-4" />
                                 Log out
@@ -317,9 +314,7 @@ export default function Navigation() {
                     </div>
 
                     <IconButton variant="text" className="flex justify-center">
-                        <Bell className="h-5 w-5 text-[#42526E] flex" />
-                        <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
-                    </IconButton>
+                    </IconButton >
                     {renderProfileMenu()}
                 </div>
             </div>

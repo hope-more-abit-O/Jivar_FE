@@ -40,7 +40,7 @@ export default function SignIn() {
                 formData.append('Password', password);
 
                 const response = await axios.post(
-                    'https://localhost:7150/api/v1/auth/login',
+                    'http://localhost:5287/api/v1/auth/login',
                     formData,
                     {
                         headers: {

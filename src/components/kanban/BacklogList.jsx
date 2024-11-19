@@ -2,6 +2,7 @@ import React from "react";
 import PropTypes from "prop-types";
 import { Typography } from "@material-tailwind/react";
 import BacklogDetails from "./BacklogDetails";
+import Navigation from "../navigation/navigation";
 
 BacklogList.propTypes = {
   list: PropTypes.array.isRequired,

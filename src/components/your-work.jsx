@@ -1,122 +1,176 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
-import logo from '../assets/7537044.jpg';
-import { Alert } from '@material-tailwind/react';
-import { Transition } from '@headlessui/react';
-import Navigation from './navigation/navigation';
+import React, { useState, useEffect, useRef } from "react";
+import { Alert } from "@material-tailwind/react";
+import { Transition } from "@headlessui/react";
+import Navigation from "./navigation/navigation";
+import axios from "axios";
 
 export default function YourWork() {
-    const [isProjectsOpen, setIsProjectsOpen] = useState(false);
-    const [activeItem, setActiveItem] = useState('Your work');
-    const [activeSubItem, setActiveSubItem] = useState('Worked on');
-    const dropdownRef = useRef(null);
-    const location = useLocation();
+  const [isProjectsOpen, setIsProjectsOpen] = useState(false);
+  const [activeSubItem, setActiveSubItem] = useState("Worked on"); // Default tab
+  const [projects, setProjects] = useState([]);
+  const [successMessage, setSuccessMessage] = useState("");
+  const dropdownRef = useRef(null);
 
-    // Success message from login
-    const [successMessage, setSuccessMessage] = useState(location.state?.successMessage || '');
-
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        function handleClickOutside(event) {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-                setIsProjectsOpen(false);
-            }
-        }
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, []);
-
-    useEffect(() => {
-        // Clear success message after 5 seconds
-        if (successMessage) {
-            const timer = setTimeout(() => {
-                setSuccessMessage('');
-            }, 5000);
-            return () => clearTimeout(timer);
-        }
-    }, [successMessage]);
-
-    const handleSubItemClick = (subItemName) => {
-        setActiveSubItem(subItemName);
+  // Fetch projects when component mounts
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const response = await axios.get(
+          "http://localhost:5287/api/Project?includeRole=true&includeSprint=true&includeTask=true"
+        );
+        setProjects(response.data || []);
+      } catch (error) {
+        console.error("Error fetching projects:", error);
+      }
     };
 
-    const navItems = [
-        { name: 'Your work', path: '/jivar/your-work' },
-        { name: 'Projects', path: '/jivar/projects' },
-        { name: 'Filters', path: '/jivar/filters' },
-        { name: 'Dashboards', path: '/jivar/dashboards' },
-        { name: 'Teams', path: '/jivar/teams' },
-        { name: 'Plans', path: '/jivar/plans' },
-        { name: 'Apps', path: '/jivar/apps' },
-    ];
+    fetchProjects();
+  }, []);
 
-    const subNavItems = ['Worked on', 'Viewed', 'Assigned to me', 'Starred'];
+  // Success message handler
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage("");
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
 
-    return (
-        <div className="min-h-screen bg-white">
-            {successMessage && (
-                <Transition
-                    show={!!successMessage}
-                    enter="transition-opacity duration-300"
-                    enterFrom="opacity-0"
-                    enterTo="opacity-100"
-                    leave="transition-opacity duration-300"
-                    leaveFrom="opacity-100"
-                    leaveTo="opacity-0"
-                >
-                    <Alert
-                        color="green"
-                        className="fixed top-5 right-5 z-50 w-[300px] shadow-lg font-medium border-[#2ec946] bg-[#2ec946]/10 text-[#2ec946]"
-                    >
-                        {successMessage}
-                    </Alert>
-                </Transition>
-            )}
+  const handleSubItemClick = (subItemName) => {
+    setActiveSubItem(subItemName);
+  };
 
-            <Navigation />
+  // Filter tasks for "Assigned to me"
+  const assignedTasks = projects.flatMap((project) =>
+    project.sprints?.flatMap((sprint) =>
+      sprint.tasks?.filter((task) => task.assignee === "currentUserId") || []
+    ) || []
+  );
 
-            <main className="max-w-7xl mx-auto px-6 py-6">
-                <h1 className="text-2xl font-semibold text-[#172B4D] mb-6">Your work</h1>
+  return (
+    <div className="min-h-screen bg-white">
+      {/* Success message */}
+      {successMessage && (
+        <Transition
+          show={!!successMessage}
+          enter="transition-opacity duration-300"
+          enterFrom="opacity-0"
+          enterTo="opacity-100"
+          leave="transition-opacity duration-300"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+        >
+          <Alert
+            color="green"
+            className="fixed top-5 right-5 z-50 w-[300px] shadow-lg font-medium border-[#2ec946] bg-[#2ec946]/10 text-[#2ec946]"
+          >
+            {successMessage}
+          </Alert>
+        </Transition>
+      )}
 
-                <div className="border-b border-gray-200 mb-8">
-                    <nav className="flex space-x-8">
-                        {subNavItems.map((item) => (
-                            <button
-                                key={item}
-                                className={`pb-2 ${
-                                    activeSubItem === item
-                                        ? 'border-b-2 border-[#0052CC] text-[#0052CC]'
-                                        : 'text-[#42526E] hover:text-[#172B4D]'
-                                }`}
-                                onClick={() => handleSubItemClick(item)}
-                            >
-                                {item}
-                            </button>
-                        ))}
-                    </nav>
-                </div>
+      <Navigation />
 
-                <div className="text-center py-16">
-                    <img
-                        src={logo}
-                        alt="No work yet"
-                        className="mx-auto mb-6 h-20"
-                    />
-                    <h2 className="text-xl font-semibold text-[#172B4D] mb-2">
-                        You haven't worked on anything yet
-                    </h2>
-                    <p className="text-[#42526E] mb-6 max-w-md mx-auto">
-                        In this page, you'll find your recently worked on issues. Get started by
-                        finding the project your team is working on.
-                    </p>
-                    <button className="px-4 py-2 bg-[#0052CC] text-white rounded hover:bg-[#0747A6]">
-                        View all projects
-                    </button>
-                </div>
-            </main>
+      <main className="max-w-7xl mx-auto px-6 py-6">
+        <h1 className="text-2xl font-semibold text-[#172B4D] mb-6">Your work</h1>
+
+        <div className="border-b border-gray-200 mb-8">
+          <nav className="flex space-x-8">
+            {["Worked on", "Assigned to me"].map((item) => (
+              <button
+                key={item}
+                className={`pb-2 ${
+                  activeSubItem === item
+                    ? "border-b-2 border-[#0052CC] text-[#0052CC]"
+                    : "text-[#42526E] hover:text-[#172B4D]"
+                }`}
+                onClick={() => handleSubItemClick(item)}
+              >
+                {item}
+              </button>
+            ))}
+          </nav>
         </div>
-    );
+
+        {activeSubItem === "Worked on" && (
+          <div>
+            <h2 className="text-lg font-semibold text-[#172B4D] mb-4">
+              All Projects
+            </h2>
+            {projects.length > 0 ? (
+              projects.map((project) => (
+                <div key={project.id} className="mb-8">
+                  <h3 className="text-md font-bold text-[#0052CC]">
+                    {project.name}
+                  </h3>
+                  {project.sprints?.map((sprint) => (
+                    <div key={sprint.id} className="mt-4">
+                      <h4 className="font-medium text-[#42526E]">
+                        Sprint: {sprint.name}
+                      </h4>
+                      <ul>
+                        {sprint.tasks?.map((task) => (
+                          <li
+                            key={task.id}
+                            className="py-2 px-4 bg-gray-100 rounded-lg my-2"
+                          >
+                            <div className="flex justify-between items-center">
+                              <span>{task.title}</span>
+                              <span
+                                className={`py-1 px-3 rounded-full text-sm ${
+                                  task.status === "In Progress"
+                                    ? "bg-yellow-200 text-yellow-600"
+                                    : "bg-green-200 text-green-600"
+                                }`}
+                              >
+                                {task.status}
+                              </span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              ))
+            ) : (
+              <p>No projects available.</p>
+            )}
+          </div>
+        )}
+
+        {activeSubItem === "Assigned to me" && (
+          <div>
+            <h2 className="text-lg font-semibold text-[#172B4D] mb-4">
+              Tasks Assigned to Me
+            </h2>
+            {assignedTasks.length > 0 ? (
+              assignedTasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="py-2 px-4 bg-gray-100 rounded-lg my-2"
+                >
+                  <div className="flex justify-between items-center">
+                    <span>{task.title}</span>
+                    <span
+                      className={`py-1 px-3 rounded-full text-sm ${
+                        task.status === "In Progress"
+                          ? "bg-yellow-200 text-yellow-600"
+                          : "bg-green-200 text-green-600"
+                      }`}
+                    >
+                      {task.status}
+                    </span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p>No tasks assigned to you.</p>
+            )}
+          </div>
+        )}
+      </main>
+    </div>
+  );
 }
