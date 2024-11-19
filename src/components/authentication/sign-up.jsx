@@ -55,7 +55,7 @@ export default function SignUp() {
     };
     
     try {
-      const response = await axios.post("https://localhost:7150/api/v1/auth/create", data, {
+      const response = await axios.post("http://localhost:5287/api/v1/auth/create", data, {
         headers: {
           "Content-Type": "multipart/form-data",
         },

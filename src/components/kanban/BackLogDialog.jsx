@@ -11,6 +11,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import projectAPI from "../../apis/projectApi";
 import CreateBacklogDialog from "./CreateBacklogDialog";
 import Cookies from "js-cookie";
+import Navigation from "../navigation/navigation";
 
 function BackLogDialog() {
   const [isLoading, setIsLoading] = React.useState(true);
@@ -47,6 +48,8 @@ function BackLogDialog() {
   }
 
   return (
+    <>
+    <Navigation/>
     <div className="px-24 py-8">
       <div className="flex flex-row justify-start items-center gap-x-4">
         <IconButton
@@ -111,6 +114,7 @@ function BackLogDialog() {
         <div></div>
       )}
     </div>
+    </>
   );
 }
 

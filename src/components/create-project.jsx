@@ -99,7 +99,7 @@ export default function JivarCreateProject() {
 
             try {
                 const response = await axios.post(
-                    'https://localhost:7150/api/Project',
+                    'http://localhost:5287/api/Project',
                     {
                         name: formData.name,
                         description: formData.description,
@@ -120,7 +120,7 @@ export default function JivarCreateProject() {
                     const successMessage = response.data.message;
 
                     const projectDetails = await axios.get(
-                        `https://localhost:7150/api/Project/${newProjectId}`,
+                        `http://localhost:5287/api/Project/${newProjectId}`,
                         {
                             headers: {
                                 'Authorization': `Bearer ${accessToken}`
