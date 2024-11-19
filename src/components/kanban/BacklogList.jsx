@@ -13,13 +13,15 @@ function BacklogList({ list }) {
     <div>
       <Typography>Backlog list</Typography>
       <div className="mt-4">
-        {list.map((backlog, index) => {
-          return (
+        {list.length === 0 ? (
+          <Typography>No backlogs available</Typography>
+        ) : (
+          list.map((backlog, index) => (
             <div key={index} className="p-4 bg-gray-100">
               <BacklogDetails backlog={backlog} />
             </div>
-          );
-        })}
+          ))
+        )}
       </div>
     </div>
   );
