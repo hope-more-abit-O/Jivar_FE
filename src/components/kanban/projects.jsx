@@ -20,6 +20,8 @@ import Cookies from 'js-cookie';
 import Navigation from '../navigation/navigation';
 import { data } from 'autoprefixer';
 import { CheckCircleIcon, ExclamationCircleIcon, UserIcon, UsersIcon } from '@heroicons/react/24/outline';
+import accountAPI from '../../apis/accountApi';
+import taskAPI from '../../apis/taskApi';
 
 export default function KanbanProject() {
     const [project, setProject] = useState(null);
@@ -37,6 +39,7 @@ export default function KanbanProject() {
     const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
     const [searchedUser, setSearchedUser] = useState(null);
     const [editableTask, setEditableTask] = useState({});
+    const [taskComments, setTaskComments] = useState([]);
     const [searchAccountId, setSearchAccountId] = useState('');
     const [role, setRole] = useState('');
     const [isLoadingUser, setIsLoadingUser] = useState(false);
@@ -83,7 +86,7 @@ export default function KanbanProject() {
 
     const fetchProjectById = async (projectId) => {
         try {
-            const response = await axios.get(`http://192.168.2.223:5002/api/Project/${projectId}?includeRole=true&includeSprint=true&includeTask=true`);
+            const response = await axios.get(`https://localhost:7150/api/Project/${projectId}?includeRole=true&includeSprint=true&includeTask=true`);
             if (response.data) {
                 const data = response.data;
                 console.log('API Response:', response.data);
@@ -149,7 +152,7 @@ export default function KanbanProject() {
     useEffect(() => {
         const fetchProject = async () => {
             try {
-                const response = await axios.get(`http://localhost:5287/api/Project/${projectId}?includeRole=true&includeSprint=true&includeTask=true`);
+                const response = await axios.get(`https://localhost:7150/api/Project/${projectId}?includeRole=true&includeSprint=true&includeTask=true`);
                 if (response.data) {
                     const data = response.data;
                     console.log('API Response:', response.data);
@@ -240,10 +243,11 @@ export default function KanbanProject() {
 
     const fetchTaskDetails = async (taskId) => {
         try {
-            const response = await axios.get(`http://localhost:5287/api/v1/task/${taskId}`);
-            console.log("API Response:", response.data);
-            if (response?.data?.status === 200) {
-                const taskData = response.data.data;
+            console.log("Click Task Id:", taskId);
+            const response = await taskAPI.getByTasKIdAndProjectId({ taskId }, { projectId });
+            console.log("Click Task Response:", response.data);
+            if (response?.status === 200) {
+                const taskData = response.data;
                 console.log("Task Data:", taskData);
                 setEditableTask({
                     id: taskData.id,
@@ -256,6 +260,7 @@ export default function KanbanProject() {
                     endDateSprintTask: taskData.endDateSprintTask,
                     status: taskData.status,
                 });
+                setTaskComments(taskData.comments);
                 setSelectedTask(taskData);
             } else {
                 console.error("Error fetching task:", response.data.message);
@@ -265,6 +270,8 @@ export default function KanbanProject() {
         }
     };
 
+
+
     const updateTaskDetails = async () => {
         if (!editableTask.id) {
             console.error("Task ID is missing");
@@ -273,7 +280,7 @@ export default function KanbanProject() {
 
         try {
             const response = await axios.put(
-                `http://localhost:5287/api/v1/task/${editableTask.id}`,
+                `https://localhost:7150/api/v1/task/${editableTask.id}`,
                 editableTask
             );
 
@@ -308,7 +315,7 @@ export default function KanbanProject() {
     const updateTaskStatus = async (taskId, status) => {
         try {
             const response = await axios.put(
-                `http://localhost:5287/api/v1/task/update-status/${taskId}?status=${status}`
+                `https://localhost:7150/api/v1/task/update-status/${taskId}?status=${status}`
             );
 
             if (response.status === 200) {
@@ -335,9 +342,6 @@ export default function KanbanProject() {
             console.error("Error updating task status:", error);
         }
     };
-
-
-
 
     const openTaskDialog = (taskId) => {
         fetchTaskDetails(taskId);
@@ -367,7 +371,7 @@ export default function KanbanProject() {
         setIsLoadingUser(true);
 
         try {
-            const response = await axios.get(`http://localhost:5287/api/v1/account/info/user/${searchAccountId}`);
+            const response = await axios.get(`https://localhost:7150/api/v1/account/info/user/${searchAccountId}`);
             console.log("Search User Response:", response.data);
 
             if (response.data) {
@@ -414,7 +418,7 @@ export default function KanbanProject() {
             console.log("Payload being sent:", payload);
 
             const response = await axios.post(
-                'http://localhost:5287/api/ProjectRole',
+                'https://localhost:7150/api/ProjectRole',
                 payload,
                 {
                     headers: {
@@ -450,10 +454,10 @@ export default function KanbanProject() {
 
     const handleCreateSprintSubmit = async () => {
         try {
-            await axios.post(`http://localhost:5287/api/v1/sprint?projectId=${projectId}`, newSprintData);
+            await axios.post(`https://localhost:7150/api/v1/sprint?projectId=${projectId}`, newSprintData);
             setIsSprintDialogOpen(false);
             setNewSprintData({ name: '', startDate: '', endDate: '' });
-            const response = await axios.get(`http://localhost:5287/api/Project/${projectId}?includeRole=true&includeSprint=true&includeTask=true`);
+            const response = await axios.get(`https://localhost:7150/api/Project/${projectId}?includeRole=true&includeSprint=true&includeTask=true`);
             setProject({
                 ...response.data,
                 sprints: response.data.sprints.map((sprint) => ({
@@ -461,8 +465,6 @@ export default function KanbanProject() {
                     tasks: sprint.tasks || []
                 }))
             });
-            const response2 = await axios.get(`http://localhost:5287/api/Project/${projectId}?includeRole=true&includeSprint=true&includeTask=true`);
-            setProject(response2.data);
         } catch (error) {
             console.error('Failed to create sprint:', error);
             setError('Failed to create sprint. Please try again.');
@@ -484,7 +486,7 @@ export default function KanbanProject() {
         try {
             const accessToken = Cookies.get('accessToken');
             const response = await axios.post(
-                'http://192.168.2.223:5002/api/v1/document/uploadFile',
+                'https://localhost:7150/api/v1/document/uploadFile',
                 formData,
                 {
                     headers: {
@@ -516,7 +518,7 @@ export default function KanbanProject() {
     const fetchUploadedFiles = async () => {
         try {
             const accessToken = Cookies.get('accessToken');
-            const response = await axios.get('http://192.168.2.223:5002/api/v1/document', {
+            const response = await axios.get('https://localhost:7150/api/v1/document', {
                 headers: {
                     Authorization: `Bearer ${accessToken}`,
                 },
@@ -565,7 +567,7 @@ export default function KanbanProject() {
         try {
             const accessToken = Cookies.get('accessToken');
             const response = await axios.put(
-                'http://localhost:5287/api/ProjectRole',
+                'https://localhost:7150/api/ProjectRole',
                 {
                     accountId,
                     projectId: project.id,
@@ -597,7 +599,7 @@ export default function KanbanProject() {
         try {
             const accessToken = Cookies.get('accessToken');
             const response = await axios.delete(
-                `http://localhost:5287/api/ProjectRole/${project.id}/${accountId}`,
+                `https://localhost:7150/api/ProjectRole/${project.id}/${accountId}`,
                 {
                     headers: {
                         Authorization: `Bearer ${accessToken}`,
@@ -702,7 +704,7 @@ export default function KanbanProject() {
             const accessToken = Cookies.get('accessToken');
 
             const createResponse = await axios.post(
-                `http://localhost:5287/api/v1/task?sprintId=${sprintId}`,
+                `https://localhost:7150/api/v1/task?sprintId=${sprintId}`,
                 {
                     title: title,
                     description: null,
@@ -732,7 +734,7 @@ export default function KanbanProject() {
                 const status = statusMap[column];
                 if (status) {
                     await axios.put(
-                        `http://localhost:5287/api/v1/task/update-status/${createdTask.id}?status=${status}`,
+                        `https://localhost:7150/api/v1/task/update-status/${createdTask.id}?status=${status}`,
                         {},
                         {
                             headers: {
@@ -744,7 +746,7 @@ export default function KanbanProject() {
                 }
 
                 const fetchResponse = await axios.get(
-                    `http://localhost:5287/api/v1/task/${createdTask.id}`,
+                    `https://localhost:7150/api/v1/task/${createdTask.id}`,
                     {
                         headers: {
                             Authorization: `Bearer ${accessToken}`,
@@ -792,7 +794,7 @@ export default function KanbanProject() {
         }
     };
 
-    const handleTaskClick = (task) => {
+    const setEditableTaskClick = (task) => {
         console.log("Clicked Task Object:", task);
         fetchTaskDetails(task.id);
         setIsTaskDialogOpen(true);
@@ -807,7 +809,7 @@ export default function KanbanProject() {
         try {
             const accessToken = Cookies.get('accessToken');
             const response = await axios.post(
-                `http://192.168.2.223:5002/api/v1/comment/${editableTask.id}`,
+                `https://localhost:7150/api/v1/comment/${editableTask.id}`,
                 { content: newComment.trim() },
                 {
                     headers: {
@@ -893,7 +895,81 @@ export default function KanbanProject() {
         );
     };
 
-
+    const renderCommentDialog = () => {
+        return (
+            <>
+                <div
+                    className={`fixed inset-0 bg-black/60 transition-opacity duration-300 ${isTaskDialogOpen ? "opacity-100" : "opacity-0 pointer-events-none"} z-50`}
+                />
+                <div
+                    className="fixed top-[56px] left-[1300px] -translate-x-1/2 w-[600px] max-w-[calc(100vw-48px)] m-0 p-0 shadow-xl z-[60] max-h-[calc(100vh-80px)] overflow-hidden bg-white" // Added bg-white
+                    style={{
+                        transform: isTaskDialogOpen ? 'scale(1) translateX(0)' : 'scale(0.9) translateX(-50%)',
+                        opacity: isTaskDialogOpen ? 1 : 0,
+                    }}
+                >
+                    <div className="flex justify-between items-center border-b p-4">
+                        <div className="text-lg font-bold text-gray-900">Comments</div> {/* Darker text */}
+                        <span className="cursor-pointer" onClick={() => setIsTaskDialogOpen(false)}>
+                            <X className="h-4 w-4 text-gray-600" /> {/* Grayed out X */}
+                        </span>
+                    </div>
+                    <div className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(80vh-160px)' }}>
+                        <div className="space-y-4">
+                            {taskComments.map((comment) => (
+                                <div key={comment.id} className="space-y-2">
+                                    <div className="flex items-start gap-2">
+                                        <div className="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold"> {/* Darker blue */}
+                                            {comment.createByName?.charAt(0).toUpperCase()}
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="bg-gray-100 p-3 rounded-lg shadow-md"> {/* Added shadow */}
+                                                <p className="text-sm font-medium text-gray-900"> {/* Darker text */}
+                                                    {comment.createByName}
+                                                </p>
+                                                <p className="text-sm text-gray-700"> {/* Darker text */}
+                                                    {comment.content}
+                                                </p>
+                                            </div>
+                                            <div className="text-xs text-gray-600 mt-1">
+                                                {new Date(comment.createTime).toLocaleString()}
+                                            </div>
+                                        </div>
+                                    </div>
+    
+                                    {comment.replies.length > 0 && (
+                                        <div className="pl-10 space-y-2">
+                                            {comment.replies.map((reply) => (
+                                                <div key={reply.id} className="flex items-start gap-2">
+                                                    <div className="bg-green-600 text-white w-6 h-6 rounded-full flex items-center justify-center font-bold"> {/* Darker green */}
+                                                        {reply.createByName?.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <div className="bg-gray-200 p-3 rounded-lg shadow-md"> {/* Added shadow */}
+                                                            <p className="text-sm font-medium text-gray-900"> {/* Darker text */}
+                                                                {reply.createByName}
+                                                            </p>
+                                                            <p className="text-sm text-gray-700"> {/* Darker text */}
+                                                                {reply.content}
+                                                            </p>
+                                                        </div>
+                                                        <div className="text-xs text-gray-600 mt-1">
+                                                            {new Date(reply.createTime).toLocaleString()}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </>
+        );
+    };
+    
     const renderTaskDialog = () => {
         const taskCreator = project?.project_roles.find(
             (role) => role.account_id === editableTask?.createBy
@@ -916,7 +992,7 @@ export default function KanbanProject() {
             try {
                 const accessToken = Cookies.get('accessToken');
                 const response = await axios.delete(
-                    `http://192.168.2.223:5002/api/v1/task/47${editableTask.id}`,
+                    `https://localhost:7150/api/v1/task/47${editableTask.id}`,
                     {
                         headers: {
                             Authorization: `Bearer ${accessToken}`,
@@ -974,14 +1050,14 @@ export default function KanbanProject() {
                     open={isTaskDialogOpen}
                     handler={() => setIsTaskDialogOpen(false)}
                     size="md"
-                    className="fixed top-[56px] left-[300px] -translate-x-1/2 w-[1000px] max-w-[calc(200vw-48px)] m-0 p-0 shadow-xl z-[60] max-h-[calc(100vh-80px)] overflow-hidden"
+                    className="fixed top-[56px] left-[16px] w-[800px] shadow-xl z-[60] max-h-[calc(100vh-80px)] overflow-hidden"
                     animate={{
                         mount: { scale: 1, opacity: 1 },
                         unmount: { scale: 0.9, opacity: 0 },
                     }}
                 >
                     <DialogHeader className="flex justify-between items-center border-b p-4">
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
                             <Link to="/jivar/projects" className="text-blue-500 hover:underline">
                                 <Typography variant="small">Projects</Typography>
                             </Link>
@@ -1001,9 +1077,9 @@ export default function KanbanProject() {
                         </IconButton>
                     </DialogHeader>
                     <DialogBody className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(80vh - 160px)' }}>
-                        <div className="grid grid-cols-3 gap-6">
+                        <div className="grid grid-cols-3 gap-4">
                             <div className="col-span-2">
-                                <div className="mb-6">
+                                <div className="mb-4">
                                     <Typography variant="h5" color="blue-gray" className="mb-2">
                                         <input
                                             type="text"
@@ -1023,7 +1099,7 @@ export default function KanbanProject() {
                                         rows={3}
                                     />
                                 </div>
-                                <div className="mb-6">
+                                <div className="mb-4">
                                     <Typography variant="h6" color="blue-gray" className="mb-2">
                                         Attach File
                                     </Typography>
@@ -1033,12 +1109,12 @@ export default function KanbanProject() {
                                         className="w-full border rounded p-2"
                                     />
                                 </div>
-                                <div className="mb-6">
+                                <div className="mb-4">
                                     <Typography variant="h6" color="blue-gray" className="mb-2">
                                         Uploaded Files
                                     </Typography>
                                     {Array.isArray(uploadedFiles) && uploadedFiles.length > 0 ? (
-                                        <ul className="list-disc pl-5">
+                                        <ul className="list-disc pl-4">
                                             {uploadedFiles.map((file) => (
                                                 <li key={file.id}>
                                                     <a
@@ -1058,7 +1134,7 @@ export default function KanbanProject() {
                                         </Typography>
                                     )}
                                 </div>
-                                <div className="mb-6">
+                                <div className="mb-4">
                                     <Typography variant="h6" color="blue-gray" className="mb-2">
                                         Start Date
                                     </Typography>
@@ -1071,7 +1147,7 @@ export default function KanbanProject() {
                                         className="w-full border rounded p-2"
                                     />
                                 </div>
-                                <div className="mb-6">
+                                <div className="mb-4">
                                     <Typography variant="h6" color="blue-gray" className="mb-2">
                                         End Date
                                     </Typography>
@@ -1117,7 +1193,7 @@ export default function KanbanProject() {
                                     </div>
                                 </div>
                             </div>
-                            <div className="space-y-6 border-l-2 pl-3">
+                            <div className="space-y-4 border-l-2 pl-3">
                                 <div>
                                     <Typography variant="small" color="blue-gray" className="font-medium mb-2">
                                         Assign By
@@ -1213,8 +1289,9 @@ export default function KanbanProject() {
                     </DialogFooter>
                 </Dialog>
             </>
-        );
+        );        
     };
+    
 
     const renderAddUserDialog = () => (
         <Dialog
@@ -1364,7 +1441,7 @@ export default function KanbanProject() {
                         <div
                             key={`${task.id}-${task.status}`}
                             className="bg-white p-2 my-2 rounded shadow cursor-pointer hover:bg-gray-50"
-                            onClick={() => handleTaskClick(task)}
+                            onClick={() => setEditableTaskClick(task)}
                         >
                             <Typography variant="small" className="font-medium">
                                 {task.title}
@@ -1492,6 +1569,7 @@ export default function KanbanProject() {
             </>
         );
     }
+    
 
     return (
         <div className="min-h-screen bg-white">
@@ -1729,8 +1807,10 @@ export default function KanbanProject() {
                 </div>
             </div>
             {renderTaskDialog()}
+            {renderCommentDialog()}
         </div>
 
     );
 
+    
 }

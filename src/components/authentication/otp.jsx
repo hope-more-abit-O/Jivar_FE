@@ -19,7 +19,7 @@ const OtpEntry = () => {
         if (otp.length === 6) {
             console.log(otp);
             const response = await axios.get(
-              `http://localhost:5287/api/Account/verify?token=${otp}`
+              `https://localhost:7150/api/Account/verify?token=${otp}`
           );
           if (response.status === 200) {
               navigate("/authentication/sign-in");
