@@ -130,10 +130,6 @@ export default function Navigation() {
         Cookies.remove('roleName');
         Cookies.remove('email');
         Cookies.remove('projectId');
-
-
-
-
         setUser(null);
         navigate('/authentication/sign-in');
     };
