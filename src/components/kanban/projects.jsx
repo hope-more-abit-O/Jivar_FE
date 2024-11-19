@@ -80,7 +80,7 @@ export default function KanbanProject() {
     useEffect(() => {
         const fetchProject = async () => {
             try {
-                const response = await axios.get(`http://192.168.2.223:5002/api/Project/${projectId}?includeRole=true&includeSprint=true&includeTask=true`);
+                const response = await axios.get(`http://localhost:5287/api/Project/${projectId}?includeRole=true&includeSprint=true&includeTask=true`);
                 if (response.data) {
                     const data = response.data;
                     console.log('API Response:', response.data);
@@ -172,7 +172,7 @@ export default function KanbanProject() {
 
     const fetchTaskDetails = async (taskId) => {
         try {
-            const response = await axios.get(`http://192.168.2.223:5002/api/v1/task/${taskId}`);
+            const response = await axios.get(`http://localhost:5287/api/v1/task/${taskId}`);
             console.log("API Response:", response.data);
             if (response?.data?.status === 200) {
                 const taskData = response.data.data;
@@ -205,7 +205,7 @@ export default function KanbanProject() {
 
         try {
             const response = await axios.put(
-                `http://192.168.2.223:5002/api/v1/task/${editableTask.id}`,
+                `http://localhost:5287/api/v1/task/${editableTask.id}`,
                 editableTask
             );
 
@@ -239,7 +239,7 @@ export default function KanbanProject() {
     const updateTaskStatus = async (taskId, status) => {
         try {
             const response = await axios.put(
-                `http://192.168.2.223:5002/api/v1/task/update-status/${taskId}?status=${status}`
+                `http://localhost:5287/api/v1/task/update-status/${taskId}?status=${status}`
             );
 
             if (response.status === 200) {
@@ -297,7 +297,7 @@ export default function KanbanProject() {
         setIsLoadingUser(true);
 
         try {
-            const response = await axios.get(`http://192.168.2.223:5002/api/v1/account/info/user/${searchAccountId}`);
+            const response = await axios.get(`http://localhost:5287/api/v1/account/info/user/${searchAccountId}`);
             console.log("Search User Response:", response.data);
 
             if (response.data) {
@@ -305,6 +305,8 @@ export default function KanbanProject() {
                     accountId: response.data.id,
                     name: response.data.name,
                 });
+
+                
             } else {
                 alert("User not found.");
             }
@@ -342,7 +344,7 @@ export default function KanbanProject() {
             console.log("Payload being sent:", payload);
 
             const response = await axios.post(
-                'http://192.168.2.223:5002/api/ProjectRole',
+                'http://localhost:5287/api/ProjectRole',
                 payload,
                 {
                     headers: {
@@ -378,10 +380,10 @@ export default function KanbanProject() {
 
     const handleCreateSprintSubmit = async () => {
         try {
-            await axios.post(`http://192.168.2.223:5002/api/v1/sprint?projectId=${projectId}`, newSprintData);
+            await axios.post(`http://localhost:5287/api/v1/sprint?projectId=${projectId}`, newSprintData);
             setIsSprintDialogOpen(false);
             setNewSprintData({ name: '', startDate: '', endDate: '' });
-            const response = await axios.get(`http://192.168.2.223:5002/api/Project/${projectId}?includeRole=true&includeSprint=true&includeTask=true`);
+            const response = await axios.get(`http://localhost:5287/api/Project/${projectId}?includeRole=true&includeSprint=true&includeTask=true`);
             setProject({
                 ...response.data,
                 sprints: response.data.sprints.map((sprint) => ({
@@ -389,7 +391,7 @@ export default function KanbanProject() {
                     tasks: sprint.tasks || []
                 }))
             });
-            const response2 = await axios.get(`http://192.168.2.223:5002/api/Project/${projectId}?includeRole=true&includeSprint=true&includeTask=true`);
+            const response2 = await axios.get(`http://localhost:5287/api/Project/${projectId}?includeRole=true&includeSprint=true&includeTask=true`);
             setProject(response2.data);
         } catch (error) {
             console.error('Failed to create sprint:', error);
@@ -427,7 +429,7 @@ export default function KanbanProject() {
         try {
             const accessToken = Cookies.get('accessToken');
             const response = await axios.put(
-                'http://192.168.2.223:5002/api/ProjectRole',
+                'http://localhost:5287/api/ProjectRole',
                 {
                     accountId,
                     projectId: project.id,
@@ -459,7 +461,7 @@ export default function KanbanProject() {
         try {
             const accessToken = Cookies.get('accessToken');
             const response = await axios.delete(
-                `http://192.168.2.223:5002/api/ProjectRole/${project.id}/${accountId}`,
+                `http://localhost:5287/api/ProjectRole/${project.id}/${accountId}`,
                 {
                     headers: {
                         Authorization: `Bearer ${accessToken}`,
@@ -564,7 +566,7 @@ export default function KanbanProject() {
             const accessToken = Cookies.get('accessToken');
 
             const createResponse = await axios.post(
-                `http://192.168.2.223:5002/api/v1/task?sprintId=${sprintId}`,
+                `http://localhost:5287/api/v1/task?sprintId=${sprintId}`,
                 {
                     title: title,
                     description: null,
@@ -594,7 +596,7 @@ export default function KanbanProject() {
                 const status = statusMap[column];
                 if (status) {
                     await axios.put(
-                        `http://192.168.2.223:5002/api/v1/task/update-status/${createdTask.id}?status=${status}`,
+                        `http://localhost:5287/api/v1/task/update-status/${createdTask.id}?status=${status}`,
                         {},
                         {
                             headers: {
@@ -606,7 +608,7 @@ export default function KanbanProject() {
                 }
 
                 const fetchResponse = await axios.get(
-                    `http://192.168.2.223:5002/api/v1/task/${createdTask.id}`,
+                    `http://localhost:5287/api/v1/task/${createdTask.id}`,
                     {
                         headers: {
                             Authorization: `Bearer ${accessToken}`,
@@ -666,7 +668,7 @@ export default function KanbanProject() {
         if (!newComment.trim()) return;
 
         try {
-            const response = await axios.post(`http://localhost:8008/task/${selectedTask.id}/comments`, {
+            const response = await axios.post(`http://localhost:5287/task/${selectedTask.id}/comments`, {
                 content: newComment,
                 create_by: currentUser.id,
             });

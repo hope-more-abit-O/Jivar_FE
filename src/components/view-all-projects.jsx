@@ -12,6 +12,8 @@ import {
 import { ChevronDownIcon, ChevronUpIcon, StarIcon } from "@heroicons/react/24/outline";
 import { EllipsisVerticalIcon } from "@heroicons/react/24/solid";
 import Navigation from './navigation/navigation';
+import axios from 'axios';
+import projectAPI from '../apis/projectApi';
 
 export default function ViewAllProjects() {
     const [projects, setProjects] = useState([]);
@@ -30,26 +32,24 @@ export default function ViewAllProjects() {
 
     useEffect(() => {
         const fetchProjects = async () => {
+            console.log(`a`);
             const token = Cookies.get('accessToken');
+            console.log(token);
             if (!token) {
                 navigate('/authentication/sign-in');
                 return;
             }
 
             try {
-                const res = await fetch(`http://192.168.2.223:5002/api/v1/user?includeRole=true&includeSprint=true&includeTask=true`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                    },
-                });
-
-                if (!res.ok) {
-                    throw new Error(`HTTP error! status: ${res.status}`);
-                }
-
-                const response = await res.json();
-                setProjects(response.data || []);
+                const res = await projectAPI.getByUser();
+                console.log(res);
+                // if (!res.ok) {
+                //     throw new Error(`HTTP error! status: ${res.status}`);
+                // }
+                
+                setProjects(res.data || []);
             } catch (error) {
+                console.log(error);
                 setError("Failed to load projects. Please try again later.");
             } finally {
                 setLoading(false);

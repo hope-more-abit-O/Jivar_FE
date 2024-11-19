@@ -8,6 +8,7 @@ import JivarCreateProject from './components/create-project'
 import KanbanProject from './components/kanban/projects'
 import ManageProfile from './components/manage-profile'
 import ViewAllProjects from './components/view-all-projects'
+import OtpEntry from './components/authentication/otp'
 
 
 const AppRoutes = () => {
@@ -21,6 +22,7 @@ const AppRoutes = () => {
       <Route path="/jivar/project/:projectId/board" element={<KanbanProject />} />
       <Route path="/jivar/manage-profile" element={<ManageProfile />} />
       <Route path="/jivar/projects" element={<ViewAllProjects />} />
+      <Route path="/authentication/otp" element={<OtpEntry/>} />
     </Routes>
   )
 }

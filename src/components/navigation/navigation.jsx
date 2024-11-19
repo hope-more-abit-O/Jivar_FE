@@ -70,10 +70,10 @@ export default function Navigation() {
 
 
             try {
-                const userId = Cookies.get('account_id');
+                const userId = Cookies.get('userId');
                 console.log(userId);
 
-                const res = await fetch(`http://localhost:8008/account?id=${userId}`, {
+                const res = await fetch(`https://localhost:7150/api/v1/account/info/user/${userId}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                     },

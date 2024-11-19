@@ -40,7 +40,7 @@ export default function SignIn() {
                 formData.append('Password', password);
 
                 const response = await axios.post(
-                    'http://192.168.2.223:5002/api/v1/auth/login',
+                    'http://localhost:5287/api/v1/auth/login',
                     formData,
                     {
                         headers: {
@@ -152,7 +152,25 @@ export default function SignIn() {
                             'Continue'
                         )}
                     </button>
+
+                    <button
+                        className={`w-full h-10 bg-[#0052CC] text-white rounded-md transition-colors duration-200 flex items-center justify-center ${
+                            isSigningIn ? 'opacity-70 cursor-not-allowed' : 'hover:bg-[#0747A6]'
+                        }`}
+                        disabled={isSigningIn}
+                        onClick={() => {navigate("/authentication/sign-up")}}
+                    >
+                        {isSigningIn ? (
+                            <>
+                                <Spinner color="white" size="sm" className="mr-2" />
+                                Signing In...
+                            </>
+                        ) : (
+                            'Sign up'
+                        )}
+                    </button>
                 </form>
+                
             </div>
         </div>
     );

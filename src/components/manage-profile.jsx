@@ -3,14 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import { User, Mail, Phone, Cake, Users } from 'lucide-react';
 import Navigation from './navigation/navigation';
+import axios from 'axios';
+import accountAPI from '../apis/accountApi';
+import { alert } from '@material-tailwind/react';
 
 export default function ManageProfile() {
     const [user, setUser] = useState({
-        username: '',
+        id:'',
+        name:'',
         email: '',
         phone: '',
         birthday: '',
         gender: '',
+        role:'',
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -25,19 +30,16 @@ export default function ManageProfile() {
             }
 
             try {
-                const userId = Cookies.get('account_id');
-                const res = await fetch(`http://localhost:8008/account?id=${userId}`, {
+                const userId = Cookies.get('userId');
+                const res = await axios.get(`https://localhost:7150/api/v1/account/info/user/${userId}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                     },
                 });
 
-                if (!res.ok) {
-                    throw new Error(`HTTP error! status: ${res.status}`);
-                }
+                console.log(res.data);
+                setUser(res.data);
 
-                const data = await res.json();
-                setUser(data[0]);
             } catch (error) {
                 console.error("Failed to fetch user data:", error);
                 setError("Failed to load user data. Please try again later.");
@@ -56,6 +58,23 @@ export default function ManageProfile() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         console.log("Updated user data:", user);
+        const request = {
+            name: user.name,
+            phone: user.phone,
+            birthday: user.birthday,
+            gender: user.gender
+          }
+          console.log(request);
+          try {
+            await accountAPI.update({
+                data: request
+            });
+
+            console.log(`Profile update successfully!`);
+          } catch (error) {
+            console.log(`Profile update failed!`);
+            console.log(error);
+          }
         // Implement API call to update user profile
     };
 
@@ -98,17 +117,17 @@ export default function ManageProfile() {
                                 <form onSubmit={handleSubmit} className="py-8 text-base leading-6 space-y-6 text-gray-700 sm:text-lg sm:leading-7">
                                     <div className="relative">
                                         <input
-                                            id="username"
-                                            name="username"
+                                            id="name"
+                                            name="name"
                                             type="text"
-                                            value={user.username}
+                                            value={user.name}
                                             onChange={handleInputChange}
                                             className="peer h-10 w-full border-b-2 border-gray-300 text-gray-900 placeholder-transparent focus:outline-none focus:border-blue-600"
-                                            placeholder="Username"
+                                            placeholder="Name"
                                         />
-                                        <label htmlFor="username" className="absolute left-0 -top-3.5 text-gray-600 text-sm transition-all peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-2 peer-focus:-top-3.5 peer-focus:text-gray-600 peer-focus:text-sm">
+                                        <label htmlFor="name" className="absolute left-0 -top-3.5 text-gray-600 text-sm transition-all peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-2 peer-focus:-top-3.5 peer-focus:text-gray-600 peer-focus:text-sm">
                                             <User className="inline w-4 h-4 mr-2" />
-                                            Username
+                                            Name
                                         </label>
                                     </div>
                                     <div className="relative">
