@@ -59,11 +59,13 @@ export default function ManageProfile() {
         console.log("Updated user data:", user);
     
         try {
-            const formData = new FormData();
-            formData.append('name', user.name);
-            formData.append('phone', user.phone);
-            formData.append('birthday', user.birthday);
-            formData.append('gender', user.gender);
+            // Create JSON object with user data
+            const updatedUserData = {
+                name: user.name,
+                phone: user.phone,
+                birthday: user.birthday,
+                gender: user.gender,
+            };
     
             const token = Cookies.get('accessToken');
             if (!token) {
@@ -72,16 +74,21 @@ export default function ManageProfile() {
                 return;
             }
     
-            const response = await axios.put('http://localhost:5287/api/v1/account/info', formData, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
+            // Send PUT request with application/json
+            const response = await axios.put(
+                'http://localhost:5287/api/v1/account/info',
+                updatedUserData,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
     
             console.log('Profile updated successfully:', response.data);
             window.alert('Profile updated successfully!');
-            window.location.reload()
+            window.location.reload();
         } catch (error) {
             if (error.response) {
                 console.error('Error response data:', error.response.data);
@@ -95,6 +102,7 @@ export default function ManageProfile() {
             }
         }
     };
+    
     
 
     if (loading) {
@@ -147,21 +155,6 @@ export default function ManageProfile() {
                                         <label htmlFor="name" className="absolute left-0 -top-3.5 text-gray-600 text-sm transition-all peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-2 peer-focus:-top-3.5 peer-focus:text-gray-600 peer-focus:text-sm">
                                             <User className="inline w-4 h-4 mr-2" />
                                             Name
-                                        </label>
-                                    </div>
-                                    <div className="relative">
-                                        <input
-                                            id="email"
-                                            name="email"
-                                            type="email"
-                                            value={user.email}
-                                            onChange={handleInputChange}
-                                            className="peer h-10 w-full border-b-2 border-gray-300 text-gray-900 placeholder-transparent focus:outline-none focus:border-blue-600"
-                                            placeholder="Email address"
-                                        />
-                                        <label htmlFor="email" className="absolute left-0 -top-3.5 text-gray-600 text-sm transition-all peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-2 peer-focus:-top-3.5 peer-focus:text-gray-600 peer-focus:text-sm">
-                                            <Mail className="inline w-4 h-4 mr-2" />
-                                            Email address
                                         </label>
                                     </div>
                                     <div className="relative">

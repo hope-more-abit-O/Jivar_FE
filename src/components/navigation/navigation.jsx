@@ -28,11 +28,11 @@ import {
 
 import logo from '../../assets/7537044.jpg';
 import jivarData from '../../../jivar-api-data.json';
+import axios from 'axios';
 
 const navItems = [
-    { name: 'Your work', path: '/jivar/your-work' },
     { name: 'Projects' },
-    { name: 'Dashboards' }
+    { name: 'Dashboards', path: '/jivar/dashboard' }
 ];
 
 export default function Navigation() {
@@ -62,33 +62,29 @@ export default function Navigation() {
     useEffect(() => {
         const fetchUser = async () => {
             const token = Cookies.get('accessToken');
-            if (token == null) {
+            if (!token) {
                 navigate('/authentication/sign-in');
                 return;
             }
 
-
             try {
                 const userId = Cookies.get('userId');
-                console.log(userId);
+                if (!userId) {
+                    console.error("User ID is missing in cookies");
+                    navigate('/authentication/sign-in');
+                    return;
+                }
 
-                const res = await fetch(`http://localhost:5287/api/v1/account/info/user/${userId}`, {
+                const res = await axios.get(`http://localhost:5287/api/v1/account/info/user/${userId}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                     },
                 });
-                console.log(res);
 
-                if (!res.ok) {
-                    throw new Error(`HTTP error! status: ${res.status}`);
-                }
-
-                const data = await res.json();
-                console.log("Fetched user data:", data[0]);
-                setUser(data[0]);
-
+                setUser(res.data);
             } catch (error) {
-                console.error("Failed to fetch data:", error);
+                console.error("Failed to fetch user data:", error);
+                navigate('/authentication/sign-in');
             } finally {
                 setLoading(false);
             }
@@ -136,7 +132,7 @@ export default function Navigation() {
 
 
     const renderProfileMenu = () => (
-        
+
         <div>
             {loading ? (
                 <p>Loading...</p>
@@ -151,7 +147,7 @@ export default function Navigation() {
                         <MenuHandler>
                             <IconButton variant="text" className="flex justify-center">
                                 <Avatar
-                                    src={user?.profilePicture || logo} 
+                                    src={user?.profilePicture || logo}
                                     alt={user?.username || 'Profile'}
                                     size="xs"
                                     className="cursor-pointer"
@@ -169,7 +165,7 @@ export default function Navigation() {
                                     </div>
                                     <div>
                                         <Typography variant="small" color="blue-gray" className="font-medium">
-                                            {user?.username || 'User'}
+                                            {user?.name || 'User'}
                                         </Typography>
                                         <Typography variant="small" color="gray" className="font-normal">
                                             {user?.email || 'user@example.com'}
@@ -183,10 +179,6 @@ export default function Navigation() {
                                         <Link to={'/jivar/manage-profile'}>
                                             Manage Profile
                                         </Link>
-                                    </MenuItem>
-                                    <MenuItem className="flex items-center justify-between hover:bg-blue-50/80">
-                                        <span>Theme</span>
-                                        <ChevronRight className="h-4 w-4" />
                                     </MenuItem>
                                 </div>
                             </div>
@@ -226,41 +218,16 @@ export default function Navigation() {
                                             </Button>
                                         </MenuHandler>
                                         <MenuList className="w-[400px]">
-                                            <div className="p-6 space-y-4">
-                                                <div>
-                                                    <Typography variant="small" color="blue-gray" className="font-medium mb-2">
-                                                        INCLUDED FREE WITH YOUR PLAN
-                                                    </Typography>
-                                                    <MenuItem className="flex items-center justify-between">
-                                                        <div className="flex items-center space-x-3">
-                                                            <img src={logo} alt="Sample" className="w-6 h-6" />
-                                                            <div>
-                                                                <Typography variant="small" color="blue-gray" className="font-medium">
-                                                                    Go-to-market sample
-                                                                </Typography>
-                                                                <Typography variant="small" color="gray" className="font-normal">
-                                                                    Business project
-                                                                </Typography>
-                                                            </div>
-                                                        </div>
-                                                        <Button variant="text" color="blue" size="sm" className="text-xs">
-                                                            TRY NOW
-                                                        </Button>
-                                                    </MenuItem>
-                                                </div>
-                                            </div>
-                                            <hr className="my-2" />
                                             <MenuItem>
                                                 <Link to={'/jivar/projects'}>
-                                                    <Typography variant="small" className="font-normal">
+                                                    <Typography variant="small" className="font-normal flex justify-center">
                                                         View all projects
                                                     </Typography>
                                                 </Link>
-
                                             </MenuItem>
                                             <MenuItem>
                                                 <Link to="/jivar/create-project" className="w-full">
-                                                    <Typography variant="small" className="font-normal">
+                                                    <Typography variant="small" className="font-normal flex justify-center">
                                                         Create project
                                                     </Typography>
                                                 </Link>
@@ -269,27 +236,15 @@ export default function Navigation() {
                                     </Menu>
                                 </div>
                             ) : (
-                                item.name === 'Your work' ? (
-                                    <Link key={item.name} to={item.path}>
-                                        <Button
-                                            variant="text"
-                                            className="flex items-center text-[#42526E]"
-                                            onClick={() => handleItemClick(item.name, item.path)}
-                                        >
-                                            {item.name}
-                                        </Button>
-                                    </Link>
-                                ) : (
+                                <Link key={item.name} to={item.path || '#'}>
                                     <Button
-                                        key={item.name}
                                         variant="text"
                                         className="flex items-center text-[#42526E]"
-                                        onClick={() => handleItemClick(item.name)}
+                                        onClick={() => handleItemClick(item.name, item.path)}
                                     >
                                         {item.name}
-                                        <ChevronDown className="ml-1 h-4 w-4" />
                                     </Button>
-                                )
+                                </Link>
                             )
                         ))}
                     </div>

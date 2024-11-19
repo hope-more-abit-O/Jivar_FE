@@ -1,16 +1,24 @@
 import React from 'react';
 import { Search, ChevronDown, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useLoadingNavigation } from '../../util/useLoadingNavigation';
 import logo from '../../assets/7537044.jpg'
+import Cookies from 'js-cookie';
 
-export default function JivarHome() {
+export default function JivarHome({ currentUser }) {
     const { isLoading, navigateWithLoading } = useLoadingNavigation();
+    const navigate = useNavigate();
 
     const handleSignIn = (e) => {
         e.preventDefault();
-        navigateWithLoading('/authentication/sign-in');
+        const accessToken = Cookies.get('accessToken');
+        if (accessToken || currentUser?.accessToken) {
+            navigateWithLoading('/jivar/projects');
+        } else {
+            navigateWithLoading('/authentication/sign-in');
+        }
     };
+
     return (
         <div className="min-h-screen flex flex-col">
             <header className="bg-white border-b border-gray-200">
@@ -44,11 +52,12 @@ export default function JivarHome() {
                             <button className="p-2 hover:bg-gray-100 rounded-full">
                                 <Search className="h-5 w-5 text-gray-500" />
                             </button>
-                            <Link
-                                to="/authentication/sign-in"
-                                className="bg-blue-600 text-white px-6 py-3 rounded-full text-lg font-medium hover:bg-blue-700 transition-colors">
+                            <button
+                                onClick={handleSignIn}
+                                className="bg-blue-600 text-white px-6 py-3 rounded-full text-lg font-medium hover:bg-blue-700 transition-colors"
+                            >
                                 Sign In
-                            </Link>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -67,11 +76,12 @@ export default function JivarHome() {
                                 </svg>
                             </span> to dreams
                         </h1>
-                        <Link
-                            to="/authentication/sign-in"
-                            className="bg-blue-600 text-white px-6 py-3 rounded-full text-lg font-medium hover:bg-blue-700 transition-colors">
+                        <button
+                            onClick={handleSignIn}
+                            className="bg-blue-600 text-white px-6 py-3 rounded-full text-lg font-medium hover:bg-blue-700 transition-colors"
+                        >
                             Get started
-                        </Link>
+                        </button>
 
                         <div className="mt-16 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 max-w-6xl mx-auto">
                             {[

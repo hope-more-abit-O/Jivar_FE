@@ -56,7 +56,7 @@ export default function SignIn() {
                     Cookies.set('email', userEmail);
                     Cookies.set('roleName', roleName);
 
-                    navigate('/jivar/your-work', {
+                    navigate('/jivar/projects', {
                         state: { successMessage: 'Login successful!' },
                     });
                 }

@@ -1,4 +1,6 @@
+import { Button } from "@material-tailwind/react";
 import axios from "axios";
+import { ArrowLeft } from "lucide-react";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -13,18 +15,22 @@ const OtpEntry = () => {
     }
   };
 
+  const handleGoBack = () => {
+    navigate(-1);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-        if (otp.length === 6) {
-            console.log(otp);
-            const response = await axios.get(
-              `http://localhost:5287/api/Account/verify?token=${otp}`
-          );
-          if (response.status === 200) {
-              navigate("/authentication/sign-in");
-          }
+      if (otp.length === 6) {
+        console.log(otp);
+        const response = await axios.get(
+          `http://localhost:5287/api/Account/verify?token=${otp}`
+        );
+        if (response.status === 200) {
+          navigate("/authentication/sign-in");
         }
+      }
 
     } catch (error) {
       alert(error.response.data.error);
@@ -33,24 +39,37 @@ const OtpEntry = () => {
   };
 
   return (
-    <div style={styles.container}>
-      <h2 style={styles.heading}>Enter OTP</h2>
-      <p style={styles.instructions}>
-        A one-time password (OTP) has been sent to your registered mobile number or email.
-      </p>
-      <form onSubmit={handleSubmit} style={styles.form}>
-        <input
-          type="text"
-          value={otp}
-          onChange={handleInputChange}
-          placeholder="Enter OTP"
-          style={styles.input}
-        />
-        <button type="submit" style={styles.submitButton}>
-          Verify OTP
-        </button>
-      </form>
-    </div>
+    <>
+      <div className="border-b border-gray-200 px-6 py-4">
+        <Button
+          variant="text"
+          className="flex items-center text-[#42526E] hover:text-[#172B4D] normal-case px-0 text-base"
+          onClick={handleGoBack}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to previous page
+        </Button>
+      </div>
+      <div style={styles.container}>
+
+        <h2 style={styles.heading}>Enter OTP</h2>
+        <p style={styles.instructions}>
+          A one-time password (OTP) has been sent to your registered mobile number or email.
+        </p>
+        <form onSubmit={handleSubmit} style={styles.form}>
+          <input
+            type="text"
+            value={otp}
+            onChange={handleInputChange}
+            placeholder="Enter OTP"
+            style={styles.input}
+          />
+          <button type="submit" style={styles.submitButton}>
+            Verify OTP
+          </button>
+        </form>
+      </div>
+    </>
   );
 };
 

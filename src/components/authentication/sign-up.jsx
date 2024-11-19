@@ -44,28 +44,24 @@ export default function SignUp() {
       data.append(key, formData[key]);
     });
 
-    const validateBirthday = (date) => {
-      const currentDate = new Date().toISOString().split("T")[0];
-      if (date > currentDate) {
-        setMessageType("red");
-        setMessage("Birthday cannot be a future date.");
-      } else {
-        setMessage("");
-      }
-    };
-    
     try {
-      const response = await axios.post("http://localhost:5287/api/v1/auth/create", data, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const response = await axios.post(
+        "http://localhost:5287/api/v1/auth/create",
+        data,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
-      if (response.status === 201) {
+      if (response.status === 200) {
+        console.log(response.data)
         setMessageType("green");
-        setMessage("Đăng kí thành công!");
+        setMessage("Sign-up successful! Redirecting to OTP verification...");
+
         setTimeout(() => {
-          navigate("/authentication/sign-in");
+          navigate("/authentication/otp", { state: { email: formData.email } });
         }, 3000);
       }
     } catch (error) {
@@ -94,14 +90,6 @@ export default function SignUp() {
     }
   };
 
-  useEffect(() => {
-    if (message) {
-      const timer = setTimeout(() => {
-        setMessage("");
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [message]);
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
@@ -168,7 +156,7 @@ export default function SignUp() {
           <input
             type="text"
             name="name"
-            placeholder="Enter your name number"
+            placeholder="Enter your name"
             value={formData.name}
             onChange={handleInputChange}
             className="w-full h-10 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -195,16 +183,13 @@ export default function SignUp() {
           <input
             type="date"
             name="birthday"
-            placeholder="Enter your birthday"
             value={formData.birthday}
-            onChange={(e) => {
-              handleInputChange(e);
-              validateBirthday(e.target.value);
-            }}
-            max={new Date().toISOString().split("T")[0]}
+            onChange={handleInputChange}
+            max={new Date().toISOString().split("T")[0]} 
             className="w-full h-10 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
+
 
           <select
             name="gender"
@@ -246,13 +231,9 @@ export default function SignUp() {
           <div className="text-center">
             <span className="text-[#42526E]">Already have a Jivar account? </span>
             <div className="flex flex-col">
-            <Link to="/authentication/sign-in" className="text-[#0052CC] hover:underline">
-              Log in
-            </Link>
-            
-            <Link to="/authentication/otp" className="text-[#0052CC] hover:underline">
-              Verify
-            </Link>
+              <Link to="/authentication/sign-in" className="text-[#0052CC] hover:underline">
+                Log in
+              </Link>
             </div>
           </div>
         </div>
