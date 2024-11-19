@@ -50,8 +50,9 @@ export default function SignIn() {
                 );
 
                 if (response.status === 200) {
-                    const { token, email: userEmail, roleName } = response.data;
-                    Cookies.set('accessToken', token, { expires: 7 });
+                    const { token, email: userEmail, roleName, actorId } = response.data;
+                    Cookies.set('accessToken', token);
+                    Cookies.set('userId', actorId )
                     Cookies.set('email', userEmail);
                     Cookies.set('roleName', roleName);
 

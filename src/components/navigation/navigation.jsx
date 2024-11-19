@@ -126,7 +126,13 @@ export default function Navigation() {
 
     const handleLogout = () => {
         Cookies.remove('accessToken');
-        Cookies.remove('account_id');
+        Cookies.remove('userId');
+        Cookies.remove('roleName');
+        Cookies.remove('email');
+        Cookies.remove('projectId');
+
+
+
 
         setUser(null);
         navigate('/authentication/sign-in');

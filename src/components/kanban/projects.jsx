@@ -14,9 +14,12 @@ import {
     DialogHeader,
     DialogBody,
     DialogFooter,
+    Textarea,
 } from "@material-tailwind/react";
 import Cookies from 'js-cookie';
 import Navigation from '../navigation/navigation';
+import { data } from 'autoprefixer';
+import { CheckCircleIcon, ExclamationCircleIcon, UserIcon, UsersIcon } from '@heroicons/react/24/outline';
 
 export default function KanbanProject() {
     const [project, setProject] = useState(null);
@@ -29,6 +32,18 @@ export default function KanbanProject() {
     const [searchQuery, setSearchQuery] = useState('');
     const [hoveredColumn, setHoveredColumn] = useState(null);
     const [isSprintDialogOpen, setIsSprintDialogOpen] = useState(false);
+    const [updateUI, setUpdateUI] = useState(false);
+    const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
+    const [searchedUser, setSearchedUser] = useState(null);
+    const [editableTask, setEditableTask] = useState({});
+    const [searchAccountId, setSearchAccountId] = useState('');
+    const [role, setRole] = useState('');
+    const [isLoadingUser, setIsLoadingUser] = useState(false);
+
+    const handleAddUserClick = () => {
+        setIsAddUserDialogOpen(true);
+    };
+
     const [newSprintData, setNewSprintData] = useState({
         name: '',
         startDate: '',
@@ -130,6 +145,7 @@ export default function KanbanProject() {
         };
 
         if (projectId) {
+            Cookies.set('projectId', projectId)
             fetchProject();
         } else {
             setError('Invalid project ID.');
@@ -154,6 +170,115 @@ export default function KanbanProject() {
         };
     }, []);
 
+    const fetchTaskDetails = async (taskId) => {
+        try {
+            const response = await axios.get(`http://192.168.2.223:5002/api/v1/task/${taskId}`);
+            console.log("API Response:", response.data);
+            if (response?.data?.status === 200) {
+                const taskData = response.data.data;
+                console.log("Task Data:", taskData);
+                setEditableTask({
+                    id: taskData.id,
+                    title: taskData.title,
+                    description: taskData.description,
+                    createBy: taskData.createBy,
+                    assignee: taskData.assignee,
+                    documentId: taskData.taskDocuments?.[0]?.document_id || null,
+                    startDateSprintTask: taskData.startDateSprintTask,
+                    endDateSprintTask: taskData.endDateSprintTask,
+                    status: taskData.status,
+                });
+                setSelectedTask(taskData);
+            } else {
+                console.error("Error fetching task:", response.data.message);
+            }
+        } catch (error) {
+            console.error("Failed to fetch task details:", error);
+        }
+    };
+
+    const updateTaskDetails = async () => {
+        if (!editableTask.id) {
+            console.error("Task ID is missing");
+            return;
+        }
+
+        try {
+            const response = await axios.put(
+                `http://192.168.2.223:5002/api/v1/task/${editableTask.id}`,
+                editableTask
+            );
+
+            if (response.status === 200) {
+                alert("Task updated successfully!");
+
+                setProject((prevProject) => {
+                    const updatedSprints = prevProject.sprints.map((sprint) => {
+                        const updatedTasks = sprint.tasks.map((task) =>
+                            task.id === editableTask.id ? { ...task, ...editableTask } : task
+                        );
+                        return { ...sprint, tasks: updatedTasks };
+                    });
+                    return { ...prevProject, sprints: updatedSprints };
+                });
+
+                setEditableTask((prevTask) => ({
+                    ...prevTask,
+                    ...editableTask,
+                }));
+
+                setIsTaskDialogOpen(false);
+            } else {
+                console.error("Failed to update task:", response.data.message);
+            }
+        } catch (error) {
+            console.error("Error during task update:", error);
+        }
+    };
+
+    const updateTaskStatus = async (taskId, status) => {
+        try {
+            const response = await axios.put(
+                `http://192.168.2.223:5002/api/v1/task/update-status/${taskId}?status=${status}`
+            );
+
+            if (response.status === 200) {
+                alert(`Task status updated to ${status} successfully!`);
+                setProject((prevProject) => {
+                    const updatedSprints = prevProject.sprints.map((sprint) => {
+                        const updatedTasks = sprint.tasks.map((task) =>
+                            task.id === taskId ? { ...task, status } : task
+                        );
+                        return { ...sprint, tasks: updatedTasks };
+                    });
+                    return { ...prevProject, sprints: updatedSprints };
+                });
+
+                setEditableTask((prevTask) => ({
+                    ...prevTask,
+                    status,
+                }));
+            } else {
+                console.error("Failed to update task status:", response.data.message);
+            }
+        } catch (error) {
+            console.error("Error updating task status:", error);
+        }
+    };
+
+
+
+
+    const openTaskDialog = (taskId) => {
+        fetchTaskDetails(taskId);
+        setIsTaskDialogOpen(true);
+    };
+
+
+    const handleInputChange = (field, value) => {
+        setEditableTask((prev) => ({ ...prev, [field]: value }));
+    };
+
     const handleCreateSprintToggle = () => {
         setIsCreatingSprint(!isCreatingSprint);
     };
@@ -163,6 +288,93 @@ export default function KanbanProject() {
         setNewSprint((prev) => ({ ...prev, [name]: value }));
     };
 
+    const handleSearchUser = async () => {
+        if (!searchAccountId) {
+            alert("Please enter an Account ID to search.");
+            return;
+        }
+
+        setIsLoadingUser(true);
+
+        try {
+            const response = await axios.get(`http://192.168.2.223:5002/api/v1/account/info/user/${searchAccountId}`);
+            console.log("Search User Response:", response.data);
+
+            if (response.data) {
+                setSearchedUser({
+                    accountId: response.data.id,
+                    name: response.data.name,
+                });
+            } else {
+                alert("User not found.");
+            }
+        } catch (error) {
+            console.error("Error searching user:", error.response || error.message);
+            alert("An error occurred while searching for the user.");
+        } finally {
+            setIsLoadingUser(false);
+        }
+    };
+
+
+    const handleAddUserToProject = async () => {
+        if (!searchedUser || !role) {
+            alert("Please select a user and assign a role before adding to the project.");
+            return;
+        }
+
+        console.log("Searched User Object:", searchedUser);
+        console.log("Account ID:", searchedUser.accountId);
+
+        if (!searchedUser.accountId) {
+            alert("Error: Account ID is missing. Please ensure the user is selected correctly.");
+            return;
+        }
+
+        try {
+            const token = Cookies.get('accessToken');
+            const payload = {
+                accountId: searchedUser.accountId,
+                projectId: project.id,
+                role: role,
+            };
+
+            console.log("Payload being sent:", payload);
+
+            const response = await axios.post(
+                'http://192.168.2.223:5002/api/ProjectRole',
+                payload,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            console.log("Response Object:", response);
+
+            if (response.status === 200) {
+                setProject((prev) => ({
+                    ...prev,
+                    project_roles: [
+                        ...prev.project_roles,
+                        { account_id: searchedUser.accountId, username: searchedUser.name, role },
+                    ],
+                }));
+
+                alert(`Success: User ${searchedUser.name} has been added to the project as ${role}.`);
+                setIsAddUserDialogOpen(false);
+            }
+        } catch (error) {
+            if (error.response) {
+                console.error("Error Response:", error.response);
+                alert(`Error: ${error.response.data.message || "An unexpected error occurred"}`);
+            } else {
+                console.error("Network or unknown error:", error.message);
+                alert("An error occurred. Please check your network connection or try again later.");
+            }
+        }
+    };
 
     const handleCreateSprintSubmit = async () => {
         try {
@@ -177,6 +389,8 @@ export default function KanbanProject() {
                     tasks: sprint.tasks || []
                 }))
             });
+            const response2 = await axios.get(`http://192.168.2.223:5002/api/Project/${projectId}?includeRole=true&includeSprint=true&includeTask=true`);
+            setProject(response2.data);
         } catch (error) {
             console.error('Failed to create sprint:', error);
             setError('Failed to create sprint. Please try again.');
@@ -200,11 +414,140 @@ export default function KanbanProject() {
     }, []);
 
     const toggleShowAllMembers = () => {
+        console.log('Toggling showAllMembers:', !showAllMembers);
         setShowAllMembers(!showAllMembers);
     };
 
     const handleSprintClick = (sprintId) => {
+        console.log("Sprint ID clicked:", sprintId);
         setSelectedSprintId(sprintId);
+    };
+
+    const handleUpdateRole = async (accountId, newRole) => {
+        try {
+            const accessToken = Cookies.get('accessToken');
+            const response = await axios.put(
+                'http://192.168.2.223:5002/api/ProjectRole',
+                {
+                    accountId,
+                    projectId: project.id,
+                    role: newRole,
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+                }
+            );
+
+            if (response.status === 200) {
+                alert('Role updated successfully.');
+                setProject((prev) => ({
+                    ...prev,
+                    project_roles: prev.project_roles.map((role) =>
+                        role.account_id === accountId ? { ...role, role: newRole } : role
+                    ),
+                }));
+            }
+        } catch (error) {
+            console.error('Error updating role:', error.response || error.message);
+            alert('Failed to update role. Please try again.');
+        }
+    };
+
+    const handleRemoveMember = async (accountId) => {
+        try {
+            const accessToken = Cookies.get('accessToken');
+            const response = await axios.delete(
+                `http://192.168.2.223:5002/api/ProjectRole/${project.id}/${accountId}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+                }
+            );
+
+            if (response.status === 200) {
+                alert('Member removed successfully.');
+                setProject((prev) => ({
+                    ...prev,
+                    project_roles: prev.project_roles.filter((role) => role.account_id !== accountId),
+                }));
+            }
+        } catch (error) {
+            console.error('Error removing member:', error.response || error.message);
+            alert('Failed to remove member. Please try again.');
+        }
+    };
+
+    const renderAllMembers = () => {
+        const userId = Cookies.get('userId');
+        const currentUser = project.project_roles.find(
+            (role) => String(role.account_id) === userId
+        );
+
+        console.log('Current User:', currentUser);
+
+        const uniqueRoles = Array.from(
+            new Map(project.project_roles.map((role) => [role.account_id, role])).values()
+        );
+
+        console.log('Unique Roles:', uniqueRoles);
+
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                <div className="bg-white w-[400px] rounded-lg p-6 shadow-lg relative">
+                    <button
+                        onClick={toggleShowAllMembers}
+                        className="absolute top-2 right-2 text-gray-600 hover:text-gray-800"
+                    >
+                        &times;
+                    </button>
+                    <h2 className="text-lg font-semibold mb-3">All Members</h2>
+                    <ul className="space-y-4">
+                        {uniqueRoles.map((role) => (
+                            <li
+                                key={role.account_id}
+                                className="flex justify-between items-center border-b pb-2"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center font-semibold">
+                                        {role.username?.substring(0, 2).toUpperCase() || 'U'}
+                                    </div>
+                                    <div>
+                                        <Typography variant="small" className="font-medium">
+                                            {role.username}
+                                        </Typography>
+                                        <Typography variant="small" color="gray">
+                                            Role: {role.role}
+                                        </Typography>
+                                    </div>
+                                </div>
+                                {currentUser?.role === 'Owner' && role.role !== 'Owner' && (
+                                    <div className="flex items-center gap-2">
+                                        <select
+                                            className="border rounded px-2 py-1 text-sm"
+                                            value={role.role}
+                                            onChange={(e) => handleUpdateRole(role.account_id, e.target.value)}
+                                        >
+                                            <option value="Developer">Developer</option>
+                                            <option value="Tester">Tester</option>
+                                            <option value="Manager">Manager</option>
+                                        </select>
+                                        <button
+                                            className="text-red-500 hover:text-red-700"
+                                            onClick={() => handleRemoveMember(role.account_id)}
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            </div>
+        );
     };
 
     const handleBackToSprints = () => {
@@ -215,40 +558,109 @@ export default function KanbanProject() {
         setIsCreatingIssue(prev => ({ ...prev, [column]: true }));
     };
 
-    const handleCreateSubmit = (column) => {
-        if (newIssueText[column].trim() !== '') {
-            const newTask = {
-                id: Date.now(),
-                title: newIssueText[column],
-                description: '',
-                status: column.toUpperCase()
-            };
+    const handleCreateTask = async (sprintId, title, column) => {
+        console.log('Creating task for Sprint ID:', sprintId, 'with title:', title, 'in column:', column);
+        try {
+            const accessToken = Cookies.get('accessToken');
 
-            setProject(prevProject => {
-                const updatedSprints = prevProject.sprints.map(sprint => {
-                    if (sprint.id === selectedSprintId) {
-                        return {
-                            ...sprint,
-                            tasks: [...sprint.tasks, newTask]
-                        };
-                    }
-                    return sprint;
-                });
+            const createResponse = await axios.post(
+                `http://192.168.2.223:5002/api/v1/task?sprintId=${sprintId}`,
+                {
+                    title: title,
+                    description: null,
+                    assignBy: null,
+                    assignee: null,
+                    documentId: null,
+                    startDateSprintTask: null,
+                    endDateSprintTask: null
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+                }
+            );
 
-                return {
-                    ...prevProject,
-                    sprints: updatedSprints
+            if (createResponse.data.status === 200) {
+                const createdTask = createResponse.data.data;
+                console.log('Task created successfully:', createdTask);
+
+                const statusMap = {
+                    todo: 'TO_DO',
+                    inProgress: 'IN_PROGRESS',
+                    done: 'DONE'
                 };
-            });
 
-            setNewIssueText(prev => ({ ...prev, [column]: '' }));
+                const status = statusMap[column];
+                if (status) {
+                    await axios.put(
+                        `http://192.168.2.223:5002/api/v1/task/update-status/${createdTask.id}?status=${status}`,
+                        {},
+                        {
+                            headers: {
+                                Authorization: `Bearer ${accessToken}`,
+                            },
+                        }
+                    );
+                    console.log(`Task status updated to ${status}`);
+                }
+
+                const fetchResponse = await axios.get(
+                    `http://192.168.2.223:5002/api/v1/task/${createdTask.id}`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${accessToken}`,
+                        },
+                    }
+                );
+
+                const updatedTask = fetchResponse.data;
+                console.log('Fetched updated task:', updatedTask);
+
+                setProject((prevProject) => ({
+                    ...prevProject,
+                    sprints: prevProject.sprints.map((sprint) => {
+                        if (sprint.id === sprintId) {
+                            return {
+                                ...sprint,
+                                tasks: [...sprint.tasks, updatedTask],
+                            };
+                        }
+                        return sprint;
+                    }),
+                }));
+                localStorage.setItem('selectedSprintId', sprintId);
+
+                window.location.reload();
+
+            } else {
+                console.error('Task creation failed:', createResponse.data.message);
+            }
+        } catch (error) {
+            console.error('Error creating or updating task:', error.response?.data || error.message);
+        }
+    };
+
+
+    const handleCreateSubmit = (column) => {
+        const sprint = project.sprints.find((s) => s.id === selectedSprintId);
+
+        if (newIssueText[column].trim() !== '' && sprint) {
+            const title = newIssueText[column].trim();
+
+            handleCreateTask(sprint.id, title, column);
+
+            setNewIssueText((prev) => ({ ...prev, [column]: '' }));
         }
     };
 
     const handleTaskClick = (task) => {
-        setSelectedTask(task);
+        console.log("Clicked Task Object:", task);
+        fetchTaskDetails(task.id);
         setIsTaskDialogOpen(true);
     };
+
+
 
     const handleCommentSubmit = async () => {
         if (!newComment.trim()) return;
@@ -340,25 +752,32 @@ export default function KanbanProject() {
 
     const renderTaskDialog = () => {
         const taskCreator = project?.project_roles.find(
-            (role) => role.account_id === selectedTask?.create_by
+            (role) => role.account_id === editableTask?.createBy
         );
         const taskAssignee = project?.project_roles.find(
-            (role) => role.account_id === selectedTask?.assignee
+            (role) => role.account_id === editableTask?.assignee
         );
-        const taskDocuments = selectedTask?.task_document || [];
-        const taskSubTasks = selectedTask?.sub_tasks || [];
-        const taskComments = selectedTask?.comments || [];
+
+        const userId = Cookies.get('userId');
+        const currentUser = project?.project_roles.find(
+            (role) => String(role.account_id) === userId
+        );
+
+        const canEditAssignee =
+            currentUser?.role === 'Owner' || currentUser?.role === 'Manager';
 
         const UserAvatar = ({ username, size = "md" }) => {
             const initials = username ? username.substring(0, 2).toUpperCase() : "U";
             const sizeClasses = {
                 sm: "w-6 h-6 text-xs",
                 md: "w-8 h-8 text-sm",
-                lg: "w-10 h-10 text-base"
+                lg: "w-10 h-10 text-base",
             };
 
             return (
-                <div className={`${sizeClasses[size]} rounded-full bg-blue-500 flex items-center justify-center text-white font-medium`}>
+                <div
+                    className={`${sizeClasses[size]} rounded-full bg-blue-500 flex items-center justify-center text-white font-medium`}
+                >
                     {initials}
                 </div>
             );
@@ -386,11 +805,17 @@ export default function KanbanProject() {
                             <Link to="/jivar/projects" className="text-blue-500 hover:underline">
                                 <Typography variant="small">Projects</Typography>
                             </Link>
-                            <Typography variant="small" color="blue-gray">/</Typography>
-                            <Typography variant="small" color="blue-gray">{project?.name}</Typography>
-                            <Typography variant="small" color="blue-gray">/</Typography>
+                            <Typography variant="small" color="blue-gray">
+                                /
+                            </Typography>
+                            <Typography variant="small" color="blue-gray">
+                                {project?.name}
+                            </Typography>
+                            <Typography variant="small" color="blue-gray">
+                                /
+                            </Typography>
                             <div className="text-sm font-bold">
-                                {selectedTask?.title} - {selectedTask?.id}
+                                {editableTask?.title} - {editableTask?.id}
                             </div>
                         </div>
                         <IconButton
@@ -406,165 +831,138 @@ export default function KanbanProject() {
                             <div className="col-span-2">
                                 <div className="mb-6">
                                     <Typography variant="h5" color="blue-gray" className="mb-2">
-                                        {selectedTask?.title}
+                                        <input
+                                            type="text"
+                                            value={editableTask?.title || ""}
+                                            placeholder="Title"
+                                            onChange={(e) => handleInputChange("title", e.target.value)}
+                                            className="w-full border rounded p-2"
+                                        />
                                     </Typography>
-                                    <Typography color="gray" className="mb-4">
-                                        {selectedTask?.description || "No description provided"}
-                                    </Typography>
+                                    <textarea
+                                        value={editableTask?.description || ""}
+                                        placeholder="Description"
+                                        onChange={(e) =>
+                                            handleInputChange("description", e.target.value)
+                                        }
+                                        className="w-full border rounded p-2"
+                                        rows={3}
+                                    />
                                 </div>
                                 <div className="mb-6">
                                     <Typography variant="h6" color="blue-gray" className="mb-2">
-                                        Documents
+                                        Start Date
                                     </Typography>
-                                    <ul className="list-disc pl-4">
-                                        {taskDocuments.map((doc) => (
-                                            <li key={doc.document_id}>
-                                                <a
-                                                    href={doc.file_path}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-blue-500 hover:underline"
-                                                >
-                                                    {doc.name}
-                                                </a>
-                                            </li>
-                                        ))}
-                                    </ul>
+                                    <input
+                                        type="datetime-local"
+                                        value={editableTask?.startDateSprintTask || ""}
+                                        onChange={(e) =>
+                                            handleInputChange("startDateSprintTask", e.target.value)
+                                        }
+                                        className="w-full border rounded p-2"
+                                    />
                                 </div>
                                 <div className="mb-6">
                                     <Typography variant="h6" color="blue-gray" className="mb-2">
-                                        Subtasks
+                                        End Date
                                     </Typography>
-                                    <ul className="list-disc pl-4">
-                                        {taskSubTasks.map((subTask) => (
-                                            <li key={subTask.id}>
-                                                {subTask.title} -{" "}
-                                                <span className="text-gray-500">
-                                                    {subTask.status}
-                                                </span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                                <div className="mt-6">
-                                    <div className="flex items-center gap-4 mb-4">
-                                        <Button
-                                            variant="text"
-                                            color="blue-gray"
-                                            className="flex items-center gap-2 px-3"
-                                            size="sm"
-                                        >
-                                            All
-                                        </Button>
-                                        <Button
-                                            variant="text"
-                                            color="blue"
-                                            className="flex items-center gap-2 px-3"
-                                            size="sm"
-                                        >
-                                            <MessageSquare className="h-4 w-4" />
-                                            Comments
-                                        </Button>
-                                        <Button
-                                            variant="text"
-                                            color="blue-gray"
-                                            className="flex items-center gap-2 px-3"
-                                            size="sm"
-                                        >
-                                            History
-                                        </Button>
-                                    </div>
-
-                                    <div className="flex gap-3">
-                                        <div className="flex-shrink-0">
-                                            <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white">
-                                                {currentUser?.username.substring(0, 2).toUpperCase() || 'U'}
-                                            </div>
-                                        </div>
-                                        <div className="flex-grow">
-                                            <Input
-                                                ref={commentInputRef}
-                                                type="text"
-                                                placeholder="Add a comment..."
-                                                value={newComment}
-                                                onChange={(e) => setNewComment(e.target.value)}
-                                                className="w-full"
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                                        e.preventDefault();
-                                                        handleCommentSubmit();
-                                                    }
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-6">
-                                        {taskComments.map((comment) => {
-                                            const commentUser = project?.project_roles.find(
-                                                (role) => role.account_id === comment.create_by
-                                            );
-                                            return (
-                                                <div key={comment.id} className="flex gap-3 mb-4">
-                                                    <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white">
-                                                        {commentUser?.username?.substring(0, 2).toUpperCase() || 'U'}
-                                                    </div>
-                                                    <div>
-                                                        <Typography variant="small" className="font-medium">
-                                                            {commentUser?.username || 'Unknown'}
-                                                        </Typography>
-                                                        <Typography variant="small" className="text-gray-700">
-                                                            {comment.content}
-                                                        </Typography>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                                    <input
+                                        type="datetime-local"
+                                        value={editableTask?.endDateSprintTask || ""}
+                                        onChange={(e) =>
+                                            handleInputChange("endDateSprintTask", e.target.value)
+                                        }
+                                        className="w-full border rounded p-2"
+                                    />
                                 </div>
                             </div>
+
+                            {/* Các trường chỉnh sửa Assign By và Assignee */}
                             <div className="space-y-6 border-l-2 pl-3">
                                 <div>
                                     <Typography variant="small" color="blue-gray" className="font-medium mb-2">
-                                        Created By
+                                        Assign By
                                     </Typography>
-                                    <div className="flex items-center gap-2">
-                                        <UserAvatar username={taskCreator?.username} />
-                                        <Typography color="gray">
-                                            {taskCreator?.username || "Unknown"}
-                                        </Typography>
-                                    </div>
+                                    <input
+                                        type="text"
+                                        value={editableTask?.assignBy || currentUser?.username || ""}
+                                        placeholder="Assign By"
+                                        readOnly
+                                        className="w-full border rounded p-2 bg-gray-100"
+                                    />
                                 </div>
                                 <div>
                                     <Typography variant="small" color="blue-gray" className="font-medium mb-2">
                                         Assignee
                                     </Typography>
-                                    <div className="flex items-center gap-2">
-                                        <UserAvatar username={taskAssignee?.username} />
-                                        <Typography color="gray">
-                                            {taskAssignee?.username || "Unassigned"}
-                                        </Typography>
+                                    {canEditAssignee ? (
+                                        <select
+                                            value={editableTask?.assignee || ""}
+                                            onChange={(e) => handleInputChange("assignee", e.target.value)}
+                                            className="w-full border rounded p-2"
+                                        >
+                                            <option value="">Select Assignee</option>
+                                            {project?.project_roles.map((role) => (
+                                                <option key={role.account_id} value={role.account_id}>
+                                                    {role.username}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <input
+                                            type="text"
+                                            value={taskAssignee?.username || "Unassigned"}
+                                            readOnly
+                                            className="w-full border rounded p-2 bg-gray-100"
+                                        />
+                                    )}
+                                </div>
+                                <div>
+                                    <Typography variant="small" color="blue-gray" className="font-medium mb-2">
+                                        Current Status
+                                    </Typography>
+                                    <div
+                                        className={`px-4 py-2 rounded text-white ${editableTask?.status === "TO_DO"
+                                            ? "bg-black"
+                                            : editableTask?.status === "IN_PROGRESS"
+                                                ? "bg-red-500"
+                                                : editableTask?.status === "DONE"
+                                                    ? "bg-green-500"
+                                                    : "bg-gray-400"
+                                            }`}
+                                    >
+                                        {editableTask?.status || "No Status"}
                                     </div>
                                 </div>
                                 <div>
                                     <Typography variant="small" color="blue-gray" className="font-medium mb-2">
-                                        Status
+                                        Update Status
                                     </Typography>
-                                    <Typography color="gray">
-                                        {selectedTask?.status || "Unknown"}
-                                    </Typography>
+                                    <select
+                                        value={editableTask?.status || "TO_DO"}
+                                        onChange={(e) => {
+                                            const newStatus = e.target.value;
+                                            updateTaskStatus(editableTask?.id, newStatus);
+                                        }}
+                                        className="w-full border rounded p-2"
+                                    >
+                                        <option value="TO_DO">TO_DO</option>
+                                        <option value="IN_PROGRESS">IN_PROGRESS</option>
+                                        <option value="DONE">DONE</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
                     </DialogBody>
                     <DialogFooter className="border-t p-4">
                         <div className="flex justify-between w-full">
-                            <Button variant="outlined" size="sm" color="blue-gray">
-                                <Share2 className="h-4 w-4 mr-2" />
-                                Share
-                            </Button>
-                            <Button variant="filled" size="sm" color="blue">
-                                Save changes
+                            <Button
+                                variant="filled"
+                                size="sm"
+                                color="blue"
+                                onClick={updateTaskDetails}
+                            >
+                                Save Changes
                             </Button>
                         </div>
                     </DialogFooter>
@@ -572,6 +970,130 @@ export default function KanbanProject() {
             </>
         );
     };
+
+    const renderAddUserDialog = () => (
+        <Dialog
+            open={isAddUserDialogOpen}
+            handler={() => setIsAddUserDialogOpen(false)}
+            size="sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+        >
+            <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 relative">
+                <DialogHeader>
+                    <Typography variant="h5" className="font-bold text-blue-gray-800">
+                        Add User to Project
+                    </Typography>
+                </DialogHeader>
+                <DialogBody className="space-y-6">
+                    <div className="flex flex-col gap-2">
+                        <Typography variant="small" color="blue-gray" className="font-medium">
+                            Account ID
+                        </Typography>
+                        <Input
+                            label="Enter Account ID"
+                            value={searchAccountId}
+                            onChange={(e) => setSearchAccountId(e.target.value)}
+                            placeholder="Enter the user’s account ID"
+                            icon={<UsersIcon className="h-5 w-5 text-blue-gray-400" />}
+                        />
+                        <Button
+                            color="blue"
+                            className="mt-2 flex items-center gap-2"
+                            onClick={handleSearchUser}
+                            disabled={isLoadingUser}
+                        >
+                            {isLoadingUser ? (
+                                <>
+                                    <svg
+                                        className="animate-spin h-5 w-5 text-white"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <circle
+                                            className="opacity-25"
+                                            cx="12"
+                                            cy="12"
+                                            r="10"
+                                            stroke="currentColor"
+                                            strokeWidth="4"
+                                        ></circle>
+                                        <path
+                                            className="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8v8z"
+                                        ></path>
+                                    </svg>
+                                    Searching...
+                                </>
+                            ) : (
+                                'Search User'
+                            )}
+                        </Button>
+                    </div>
+
+                    {searchedUser ? (
+                        <div className="bg-blue-gray-50 p-4 rounded-md shadow">
+                            <div className="flex items-center gap-4">
+                                <CheckCircleIcon className="h-6 w-6 text-green-500" />
+                                <Typography variant="h6" className="font-semibold">
+                                    {searchedUser.name || 'Unknown'}
+                                </Typography>
+                            </div>
+                            <Typography
+                                variant="small"
+                                color="blue-gray"
+                                className="mt-1 flex items-center gap-2"
+                            >
+                                <UserIcon className="h-5 w-5 text-blue-gray-400" />
+                                Account ID: {searchedUser.accountId || 'N/A'}
+                            </Typography>
+                            <div className="mt-4 flex flex-col gap-2">
+                                <Typography variant="small" color="blue-gray" className="font-medium">
+                                    Role
+                                </Typography>
+                                <Input
+                                    label="Assign Role"
+                                    value={role}
+                                    onChange={(e) => setRole(e.target.value)}
+                                    placeholder="Enter Role (e.g., Developer)"
+                                />
+                            </div>
+                        </div>
+                    ) : (
+                        searchAccountId &&
+                        !isLoadingUser && (
+                            <div className="mt-4 flex items-center gap-4">
+                                <ExclamationCircleIcon className="h-6 w-6 text-red-500" />
+                                <Typography variant="small" color="red">
+                                    User not found. Please check the Account ID.
+                                </Typography>
+                            </div>
+                        )
+                    )}
+                </DialogBody>
+                <DialogFooter className="flex justify-end gap-4">
+                    <Button
+                        variant="text"
+                        color="blue-gray"
+                        onClick={() => setIsAddUserDialogOpen(false)}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="filled"
+                        color="blue"
+                        onClick={handleAddUserToProject}
+                        disabled={!searchedUser || !role}
+                        className="flex items-center gap-2"
+                    >
+                        <CheckCircleIcon className="h-5 w-5 text-white" />
+                        Add User
+                    </Button>
+                </DialogFooter>
+            </div>
+        </Dialog>
+    );
 
     const renderColumn = (title, tasks, column) => (
         <div
@@ -589,13 +1111,13 @@ export default function KanbanProject() {
             </div>
             <div>
                 {tasks.map((task) => {
-                    console.log('task', tasks);
                     const taskAssignee = project?.project_roles.find(
                         (role) => role.account_id === task.assignee
                     );
+
                     return (
                         <div
-                            key={task.id}
+                            key={`${task.id}-${task.status}`} // Include `status` in key for dynamic updates
                             className="bg-white p-2 my-2 rounded shadow cursor-pointer hover:bg-gray-50"
                             onClick={() => handleTaskClick(task)}
                         >
@@ -608,7 +1130,9 @@ export default function KanbanProject() {
                                 </Typography>
                                 <div className="ml-2 relative group">
                                     <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs">
-                                        {taskAssignee?.username ? taskAssignee.username.substring(0, 2).toUpperCase() : 'U'}
+                                        {taskAssignee?.username
+                                            ? taskAssignee.username.substring(0, 2).toUpperCase()
+                                            : 'U'}
                                     </div>
                                     <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block z-10">
                                         <div className="bg-black text-white text-xs py-1 px-2 rounded whitespace-nowrap">
@@ -626,10 +1150,23 @@ export default function KanbanProject() {
                         className="flex items-center justify-start gap-1 px-0 hover:bg-gray-200 pe-40 rounded-sm w-full"
                         onClick={() => handleCreateClick(column)}
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={1.5}
+                            stroke="currentColor"
+                            className="size-4"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M12 4.5v15m7.5-7.5h-15"
+                            />
                         </svg>
-                        <Typography className="normal-case font-semibold text-sm not-italic">Create issue</Typography>
+                        <Typography className="normal-case font-semibold text-sm not-italic">
+                            Create issue
+                        </Typography>
                     </Button>
                 )}
                 {isCreatingIssue[column] && (
@@ -641,7 +1178,12 @@ export default function KanbanProject() {
                             type="text"
                             placeholder="What needs to be done?"
                             value={newIssueText[column]}
-                            onChange={(e) => setNewIssueText(prev => ({ ...prev, [column]: e.target.value }))}
+                            onChange={(e) =>
+                                setNewIssueText((prev) => ({
+                                    ...prev,
+                                    [column]: e.target.value,
+                                }))
+                            }
                             className="!border-0 focus:!border-0 ring-0 focus:ring-0 text-sm"
                             labelProps={{
                                 className: "hidden",
@@ -649,11 +1191,28 @@ export default function KanbanProject() {
                             containerProps={{
                                 className: "min-w-0",
                             }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleCreateSubmit(column);
+                                }
+                            }}
                         />
                         <div className="flex justify-between items-center mt-2">
                             <div className="flex items-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4 text-blue-500">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    strokeWidth={1.5}
+                                    stroke="currentColor"
+                                    className="size-4 text-blue-500"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                                    />
                                 </svg>
                             </div>
                             <Button
@@ -669,6 +1228,7 @@ export default function KanbanProject() {
             </div>
         </div>
     );
+
 
     if (loading) {
         return (
@@ -753,7 +1313,7 @@ export default function KanbanProject() {
                                         <div className="flex items-center justify-center w-8 h-8 rounded-full bg-red-500 text-white font-semibold group-hover:w-10 group-hover:h-10 group-hover:border-2 group-hover:border-white transition-all duration-200 ease-in-out">
                                             {role.username ? role.username.substring(0, 2).toUpperCase() : 'U'}
                                         </div>
-                                        <div className="absolute bottom-10 opacity-0 group-hover:opacity-100 group-hover:translate-y-1 text-sm bg-black text-white py-1 px-2 rounded shadow-lg transition-all duration-200 ease-in-out">
+                                        <div className="absolute bottom-10 opacity-0 group-hover:opacity-100 group-hover:translate-y-1 text-sm bg-black text-white py-1 px-2 rounded shadow-lg transition-all duration-200 ease-in-out z-50">
                                             {role.username || 'Unknown'}
                                         </div>
                                     </div>
@@ -783,6 +1343,8 @@ export default function KanbanProject() {
                                         </div>
                                     </div>
                                 )}
+                                {showAllMembers && renderAllMembers()}
+
 
                                 <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-300 hover:bg-gray-400 cursor-pointer ml-2">
                                     <svg
@@ -792,6 +1354,7 @@ export default function KanbanProject() {
                                         strokeWidth={1.5}
                                         stroke="currentColor"
                                         className="w-5 h-5 text-black"
+                                        onClick={() => setIsAddUserDialogOpen(true)}
                                     >
                                         <path
                                             strokeLinecap="round"
@@ -799,6 +1362,7 @@ export default function KanbanProject() {
                                             d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z"
                                         />
                                     </svg>
+                                    {renderAddUserDialog()}
                                 </div>
 
                             </div>
@@ -821,7 +1385,7 @@ export default function KanbanProject() {
                             </div>
                         </div>
 
-                        {showAllMembers && (
+                        {showAllMembers && renderAllMembers(
                             <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
                                 <div className="bg-white w-[300px] rounded-lg p-4 shadow-lg relative">
                                     <button onClick={toggleShowAllMembers} className="absolute top-2 right-2 text-gray-600 hover:text-gray-800">&times;</button>
@@ -901,10 +1465,10 @@ export default function KanbanProject() {
                                 >
                                     Back to Sprints list
                                 </Button>
-                                <div className="flex space-x-4">
+                                <div className="flex space-x-4" key={updateUI}>
                                     {renderColumn(
                                         'TO DO',
-                                        project.sprints.find((s) => s.id === selectedSprintId)?.tasks.filter((task) => task.status === 'TO DO') || [],
+                                        project.sprints.find((s) => s.id === selectedSprintId)?.tasks.filter((task) => task.status === 'TO_DO') || [],
                                         'todo'
                                     )}
                                     {renderColumn(
@@ -925,5 +1489,7 @@ export default function KanbanProject() {
             </div>
             {renderTaskDialog()}
         </div>
+
     );
+
 }
