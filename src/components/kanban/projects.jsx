@@ -40,6 +40,9 @@ export default function KanbanProject() {
     const [role, setRole] = useState('');
     const [isLoadingUser, setIsLoadingUser] = useState(false);
 
+    const accessToken = Cookies.get('accessToken');
+    const userId = Cookies.get('userId');
+
     const handleAddUserClick = () => {
         setIsAddUserDialogOpen(true);
     };
@@ -1269,10 +1272,6 @@ export default function KanbanProject() {
                                     PLANNING
                                 </Typography>
                             </div>
-                            <Button variant="text" color="blue-gray" className="flex items-center justify-start normal-case" fullWidth>
-                                <span className="mr-3">📅</span>
-                                Timeline
-                            </Button>
                             <Button variant="text" color="blue" className="flex items-center justify-start normal-case bg-blue-50" fullWidth>
                                 <span className="mr-3">📋</span>
                                 Board
