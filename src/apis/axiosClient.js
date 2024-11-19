@@ -3,13 +3,12 @@ import Cookies from 'js-cookie';
 
 // Tạo instance của Axios
 const axiosClient = axios.create({
-    baseURL: 'https://localhost:7150/api/v1',
+    baseURL: 'http://localhost:5287/api/v1',
     headers: {
         'Content-Type': 'application/json',
     },
 });
  
-// Interceptor cho request
 axiosClient.interceptors.request.use(
     (config) => {
         const token = Cookies.get('accessToken');

@@ -83,7 +83,7 @@ export default function KanbanProject() {
 
     const fetchProjectById = async (projectId) => {
         try {
-            const response = await axios.get(`http://192.168.2.223:5002/api/Project/${projectId}?includeRole=true&includeSprint=true&includeTask=true`);
+            const response = await axios.get(`http://localhost:5287/api/Project/${projectId}?includeRole=true&includeSprint=true&includeTask=true`);
             if (response.data) {
                 const data = response.data;
                 console.log('API Response:', response.data);
@@ -295,7 +295,18 @@ export default function KanbanProject() {
                 //     ...prevTask,
                 //     ...editableTask,
                 // }));
-                window.location.reload()
+                // window.location.reload()
+                setProject((prevProject) => {
+                    const updatedSprints = prevProject.sprints.map((sprint) => ({
+                        ...sprint,
+                        tasks: sprint.tasks.map((task) =>
+                            task.id === editableTask.id ? { ...task, ...editableTask } : task
+                        ),
+                    }));
+                    return { ...prevProject, sprints: updatedSprints };
+                });
+
+
                 setIsTaskDialogOpen(false);
             } else {
                 console.error("Failed to update task:", response.data.message);
@@ -313,7 +324,7 @@ export default function KanbanProject() {
 
             if (response.status === 200) {
                 console.log("Task update successful:", response.data);
-                alert(`Task status updated to ${status} successfully!`);
+                // alert(`Task status updated to ${status} successfully!`);
                 setProject((prevProject) => {
                     const updatedSprints = prevProject.sprints.map((sprint) => {
                         const updatedTasks = sprint.tasks.map((task) =>
@@ -335,9 +346,6 @@ export default function KanbanProject() {
             console.error("Error updating task status:", error);
         }
     };
-
-
-
 
     const openTaskDialog = (taskId) => {
         fetchTaskDetails(taskId);
@@ -376,7 +384,7 @@ export default function KanbanProject() {
                     name: response.data.name,
                 });
 
-                
+
             } else {
                 alert("User not found.");
             }
@@ -484,7 +492,7 @@ export default function KanbanProject() {
         try {
             const accessToken = Cookies.get('accessToken');
             const response = await axios.post(
-                'http://192.168.2.223:5002/api/v1/document/uploadFile',
+                'http://localhost:5287/api/v1/document/uploadFile',
                 formData,
                 {
                     headers: {
@@ -516,7 +524,7 @@ export default function KanbanProject() {
     const fetchUploadedFiles = async () => {
         try {
             const accessToken = Cookies.get('accessToken');
-            const response = await axios.get('http://192.168.2.223:5002/api/v1/document', {
+            const response = await axios.get('http://localhost:5287/api/v1/document', {
                 headers: {
                     Authorization: `Bearer ${accessToken}`,
                 },
@@ -807,7 +815,7 @@ export default function KanbanProject() {
         try {
             const accessToken = Cookies.get('accessToken');
             const response = await axios.post(
-                `http://192.168.2.223:5002/api/v1/comment/${editableTask.id}`,
+                `http://localhost:5287/api/v1/comment/${editableTask.id}`,
                 { content: newComment.trim() },
                 {
                     headers: {
@@ -827,7 +835,7 @@ export default function KanbanProject() {
                 setNewComment('');
             } else {
                 console.error('Failed to add comment:', response);
-                alert('Failed to add comment. Please try again.');
+                // alert('Failed to add comment. Please try again.');
             }
         } catch (error) {
             console.error('Error adding comment:', error);
@@ -916,7 +924,7 @@ export default function KanbanProject() {
             try {
                 const accessToken = Cookies.get('accessToken');
                 const response = await axios.delete(
-                    `http://192.168.2.223:5002/api/v1/task/47${editableTask.id}`,
+                    `http://localhost:5287/api/v1/task/${editableTask.id}`,
                     {
                         headers: {
                             Authorization: `Bearer ${accessToken}`,
@@ -925,7 +933,8 @@ export default function KanbanProject() {
                 );
 
                 if (response.status === 200) {
-                    alert("Task deleted successfully!");
+                    // alert("Task deleted successfully!");
+                    console.log('task deleted', response.data)
                     setIsTaskDialogOpen(false);
                     setProject((prevProject) => ({
                         ...prevProject,
@@ -935,7 +944,7 @@ export default function KanbanProject() {
                         })),
                     }));
                 } else {
-                    alert("Failed to delete the task.");
+                    // alert("Failed to delete the task.");
                 }
             } catch (error) {
                 console.error("Error deleting task:", error.response || error.message);
@@ -1502,7 +1511,11 @@ export default function KanbanProject() {
                         <div className="flex items-center space-x-3 mb-6">
                             <img src={logo} alt="Project" className="w-8 h-8 rounded" />
                             <div>
-                                <Typography variant="h6" color="blue-gray">{project.name}</Typography>
+                                {project?.name ? (
+                                    <Typography variant="h6" color="blue-gray">{project.name}</Typography>
+                                ) : (
+                                    <Typography variant="h6" color="blue-gray">Loading...</Typography>
+                                )}
                                 <Typography variant="small" color="gray">{project.description}</Typography>
                             </div>
                         </div>

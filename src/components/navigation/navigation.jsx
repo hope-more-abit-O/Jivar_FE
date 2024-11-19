@@ -32,8 +32,7 @@ import jivarData from '../../../jivar-api-data.json';
 const navItems = [
     { name: 'Your work', path: '/jivar/your-work' },
     { name: 'Projects' },
-    { name: 'Dashboards' },
-    { name: 'Teams' },
+    { name: 'Dashboards' }
 ];
 
 export default function Navigation() {
@@ -73,7 +72,7 @@ export default function Navigation() {
                 const userId = Cookies.get('userId');
                 console.log(userId);
 
-                const res = await fetch(`https://localhost:7150/api/v1/account/info/user/${userId}`, {
+                const res = await fetch(`http://localhost:5287/api/v1/account/info/user/${userId}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                     },
@@ -134,50 +133,10 @@ export default function Navigation() {
         navigate('/authentication/sign-in');
     };
 
-    const renderTeamsMenu = () => (
-        <div className="relative" ref={teamsDropdownRef}>
-            <Menu
-                open={isTeamsOpen}
-                handler={setIsTeamsOpen}
-                placement="bottom-start"
-                offset={-4}
-            >
-                <MenuHandler>
-                    <Button
-                        variant="text"
-                        className="flex items-center text-[#42526E]"
-                        onClick={() => handleItemClick('Teams')}
-                    >
-                        Teams <ChevronDown className="ml-1 h-4 w-4" />
-                    </Button>
-                </MenuHandler>
-                <MenuList className="w-[300px] p-0">
-                    <MenuItem className="flex items-center gap-3 p-3 hover:bg-blue-50/80">
-                        <Plus className="h-4 w-4" />
-                        <Typography variant="small" className="font-normal">
-                            Invite people to Jira
-                        </Typography>
-                    </MenuItem>
-                    <MenuItem className="flex items-center gap-3 p-3 hover:bg-blue-50/80">
-                        <Users className="h-4 w-4" />
-                        <Typography variant="small" className="font-normal">
-                            Create a team
-                        </Typography>
-                    </MenuItem>
-                    <hr className="my-2" />
-                    <div className="p-3">
-                        <MenuItem className="py-2 hover:bg-blue-50/80">
-                            <Typography variant="small" className="font-normal text-gray-600">
-                                Search people and teams
-                            </Typography>
-                        </MenuItem>
-                    </div>
-                </MenuList>
-            </Menu>
-        </div>
-    );
+
 
     const renderProfileMenu = () => (
+        
         <div>
             {loading ? (
                 <p>Loading...</p>
@@ -192,8 +151,8 @@ export default function Navigation() {
                         <MenuHandler>
                             <IconButton variant="text" className="flex justify-center">
                                 <Avatar
-                                    src={logo}
-                                    alt={user ? user.username : 'Profile'}
+                                    src={user?.profilePicture || logo} 
+                                    alt={user?.username || 'Profile'}
                                     size="xs"
                                     className="cursor-pointer"
                                 />
@@ -205,31 +164,27 @@ export default function Navigation() {
                                     Account
                                 </Typography>
                                 <div className="flex items-center gap-3">
-
                                     <div className="flex items-center justify-center w-8 h-8 rounded-full bg-red-500 text-white">
-                                        {user ? user.username.substring(0, 2).toUpperCase() : 'U'}
+                                        {user?.name?.substring(0, 2).toUpperCase() || 'U'}
                                     </div>
                                     <div>
                                         <Typography variant="small" color="blue-gray" className="font-medium">
-                                            {user ? user.username : 'User'}
+                                            {user?.username || 'User'}
                                         </Typography>
                                         <Typography variant="small" color="gray" className="font-normal">
-                                            {user ? user.email : 'user@example.com'}
+                                            {user?.email || 'user@example.com'}
                                         </Typography>
                                     </div>
                                 </div>
                             </div>
 
+                            {/* Manage Profile and Theme */}
                             <div className="p-3 border-b border-gray-200">
                                 <div className="space-y-1">
                                     <MenuItem className="hover:bg-blue-50/80 flex justify-start">
                                         <Link to={'/jivar/manage-profile'}>
                                             Manage Profile
                                         </Link>
-                                    </MenuItem>
-                                    <MenuItem className="flex items-center justify-between hover:bg-blue-50/80">
-                                        <span>Notifications</span>
-                                        <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">NEW</span>
                                     </MenuItem>
                                     <MenuItem className="flex items-center justify-between hover:bg-blue-50/80">
                                         <span>Theme</span>
@@ -248,6 +203,7 @@ export default function Navigation() {
             )}
         </div>
     );
+
 
 
     return (
@@ -315,8 +271,6 @@ export default function Navigation() {
                                         </MenuList>
                                     </Menu>
                                 </div>
-                            ) : item.name === 'Teams' ? (
-                                renderTeamsMenu()
                             ) : (
                                 item.name === 'Your work' ? (
                                     <Link key={item.name} to={item.path}>
