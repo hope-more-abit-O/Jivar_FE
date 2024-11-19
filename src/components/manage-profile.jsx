@@ -3,14 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import { User, Mail, Phone, Cake, Users } from 'lucide-react';
 import Navigation from './navigation/navigation';
+import axios from 'axios';
+import accountAPI from '../apis/accountApi';
 
 export default function ManageProfile() {
     const [user, setUser] = useState({
-        username: '',
+        id:'',
+        name:'',
         email: '',
         phone: '',
         birthday: '',
         gender: '',
+        role:'',
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -25,19 +29,16 @@ export default function ManageProfile() {
             }
 
             try {
-                const userId = Cookies.get('account_id');
-                const res = await fetch(`http://localhost:8008/account?id=${userId}`, {
+                const userId = Cookies.get('userId');
+                const res = await axios.get(`http://localhost:5287/api/v1/account/info/user/${userId}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                     },
                 });
 
-                if (!res.ok) {
-                    throw new Error(`HTTP error! status: ${res.status}`);
-                }
+                console.log(res.data);
+                setUser(res.data);
 
-                const data = await res.json();
-                setUser(data[0]);
             } catch (error) {
                 console.error("Failed to fetch user data:", error);
                 setError("Failed to load user data. Please try again later.");
@@ -56,8 +57,45 @@ export default function ManageProfile() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         console.log("Updated user data:", user);
-        // Implement API call to update user profile
+    
+        try {
+            const formData = new FormData();
+            formData.append('name', user.name);
+            formData.append('phone', user.phone);
+            formData.append('birthday', user.birthday);
+            formData.append('gender', user.gender);
+    
+            const token = Cookies.get('accessToken');
+            if (!token) {
+                console.error('No token found. Redirecting to login.');
+                navigate('/authentication/sign-in');
+                return;
+            }
+    
+            const response = await axios.put('http://localhost:5287/api/v1/account/info', formData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+    
+            console.log('Profile updated successfully:', response.data);
+            window.alert('Profile updated successfully!');
+            window.location.reload()
+        } catch (error) {
+            if (error.response) {
+                console.error('Error response data:', error.response.data);
+                window.alert(`Update failed: ${error.response.data.message || 'An error occurred.'}`);
+            } else if (error.request) {
+                console.error('No response received:', error.request);
+                window.alert('Update failed: No response from server.');
+            } else {
+                console.error('Error:', error.message);
+                window.alert(`Update failed: ${error.message}`);
+            }
+        }
     };
+    
 
     if (loading) {
         return (
@@ -98,17 +136,17 @@ export default function ManageProfile() {
                                 <form onSubmit={handleSubmit} className="py-8 text-base leading-6 space-y-6 text-gray-700 sm:text-lg sm:leading-7">
                                     <div className="relative">
                                         <input
-                                            id="username"
-                                            name="username"
+                                            id="name"
+                                            name="name"
                                             type="text"
-                                            value={user.username}
+                                            value={user.name}
                                             onChange={handleInputChange}
                                             className="peer h-10 w-full border-b-2 border-gray-300 text-gray-900 placeholder-transparent focus:outline-none focus:border-blue-600"
-                                            placeholder="Username"
+                                            placeholder="Name"
                                         />
-                                        <label htmlFor="username" className="absolute left-0 -top-3.5 text-gray-600 text-sm transition-all peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-2 peer-focus:-top-3.5 peer-focus:text-gray-600 peer-focus:text-sm">
+                                        <label htmlFor="name" className="absolute left-0 -top-3.5 text-gray-600 text-sm transition-all peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 peer-placeholder-shown:top-2 peer-focus:-top-3.5 peer-focus:text-gray-600 peer-focus:text-sm">
                                             <User className="inline w-4 h-4 mr-2" />
-                                            Username
+                                            Name
                                         </label>
                                     </div>
                                     <div className="relative">

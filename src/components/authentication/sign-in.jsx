@@ -40,7 +40,7 @@ export default function SignIn() {
                 formData.append('Password', password);
 
                 const response = await axios.post(
-                    'http://192.168.2.223:5002/api/v1/auth/login',
+                    'http://localhost:5287/api/v1/auth/login',
                     formData,
                     {
                         headers: {
@@ -52,7 +52,7 @@ export default function SignIn() {
                 if (response.status === 200) {
                     const { token, email: userEmail, roleName, actorId } = response.data;
                     Cookies.set('accessToken', token);
-                    Cookies.set('userId', actorId )
+                    Cookies.set('userId', actorId)
                     Cookies.set('email', userEmail);
                     Cookies.set('roleName', roleName);
 
@@ -86,11 +86,10 @@ export default function SignIn() {
                 >
                     <Alert
                         color={messageType === 'green' ? 'green' : 'red'}
-                        className={`fixed top-5 right-5 z-50 w-[300px] shadow-lg font-medium ${
-                            messageType === 'green'
+                        className={`fixed top-5 right-5 z-50 w-[300px] shadow-lg font-medium ${messageType === 'green'
                                 ? 'border-[#2ec946] bg-[#2ec946]/10 text-[#2ec946]'
                                 : 'border-[#f44336] bg-[#f44336]/10 text-[#f44336]'
-                        }`}
+                            }`}
                     >
                         {message}
                     </Alert>
@@ -138,9 +137,8 @@ export default function SignIn() {
 
                     <button
                         type="submit"
-                        className={`w-full h-10 bg-[#0052CC] text-white rounded-md transition-colors duration-200 flex items-center justify-center ${
-                            isSigningIn ? 'opacity-70 cursor-not-allowed' : 'hover:bg-[#0747A6]'
-                        }`}
+                        className={`w-full h-10 bg-[#0052CC] text-white rounded-md transition-colors duration-200 flex items-center justify-center ${isSigningIn ? 'opacity-70 cursor-not-allowed' : 'hover:bg-[#0747A6]'
+                            }`}
                         disabled={isSigningIn}
                     >
                         {isSigningIn ? (
@@ -152,7 +150,27 @@ export default function SignIn() {
                             'Continue'
                         )}
                     </button>
+                    <div className="p-6 border-t border-gray-200 space-y-6 text-sm">
+                        <div className="flex justify-center space-x-2">
+                            <a href="#" className="text-[#0052CC] hover:underline">Can't log in?</a>
+                            <span>•</span>
+                            <Link
+                                to="/authentication/sign-up"
+                                className="text-[#0052CC] hover:underline">
+                                Create an account
+                            </Link>
+                        </div>
+
+                        <div className="text-center space-y-2">
+                            <img
+                                src={logo}
+                                alt="Jivar"
+                                className="h-8 mx-auto"
+                            />
+                        </div>
+                    </div>
                 </form>
+
             </div>
         </div>
     );

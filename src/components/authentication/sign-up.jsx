@@ -9,10 +9,12 @@ export default function SignUp() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+    name: "",
     phone: "",
     username: "",
     birthday: "",
     gender: "",
+    feurl: "",
   });
   const [message, setMessage] = useState(""); // For both error and success messages
   const [messageType, setMessageType] = useState(""); // Type of alert (red for error, green for success)
@@ -53,7 +55,7 @@ export default function SignUp() {
     };
     
     try {
-      const response = await axios.post("http://192.168.2.223:5002/api/v1/auth/create", data, {
+      const response = await axios.post("http://localhost:5287/api/v1/auth/create", data, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -165,6 +167,15 @@ export default function SignUp() {
           />
           <input
             type="text"
+            name="name"
+            placeholder="Enter your name number"
+            value={formData.name}
+            onChange={handleInputChange}
+            className="w-full h-10 px-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          />
+          <input
+            type="text"
             name="phone"
             placeholder="Enter your phone number"
             value={formData.phone}
@@ -234,9 +245,15 @@ export default function SignUp() {
         <div className="p-6 border-t border-gray-200 space-y-6 text-sm">
           <div className="text-center">
             <span className="text-[#42526E]">Already have a Jivar account? </span>
+            <div className="flex flex-col">
             <Link to="/authentication/sign-in" className="text-[#0052CC] hover:underline">
               Log in
             </Link>
+            
+            <Link to="/authentication/otp" className="text-[#0052CC] hover:underline">
+              Verify
+            </Link>
+            </div>
           </div>
         </div>
       </div>
