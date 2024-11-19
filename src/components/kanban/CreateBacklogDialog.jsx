@@ -73,6 +73,7 @@ function CreateBacklogDialog({ task, assigneeList }) {
     };
     try {
       await projectAPI.createBacklog(request);
+      window.location.reload();
       console.log("Backlog created");
     } catch (error) {
       console.log("Failed to create: ", error);
