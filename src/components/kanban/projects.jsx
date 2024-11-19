@@ -61,15 +61,12 @@ export default function KanbanProject() {
   const [role, setRole] = useState("");
   const [isLoadingUser, setIsLoadingUser] = useState(false);
   const [open, setOpen] = useState(false);
-
+  const [taskComments, setTaskComments] = useState([]);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
-
   const navigate = useNavigate();
-
   const accessToken = Cookies.get("accessToken");
   const userId = Cookies.get("userId");
-
   const handleAddUserClick = () => {
     setIsAddUserDialogOpen(true);
   };
@@ -150,12 +147,12 @@ export default function KanbanProject() {
               status: task.status,
               task_document: task.documentId
                 ? [
-                    {
-                      document_id: task.documentId,
-                      name: `Document ${task.documentId}`,
-                      file_path: `/files/doc${task.documentId}.pdf`,
-                    },
-                  ]
+                  {
+                    document_id: task.documentId,
+                    name: `Document ${task.documentId}`,
+                    file_path: `/files/doc${task.documentId}.pdf`,
+                  },
+                ]
                 : [],
               sub_tasks: [],
               comments: [],
@@ -218,12 +215,12 @@ export default function KanbanProject() {
                 status: task.status,
                 task_document: task.documentId
                   ? [
-                      {
-                        document_id: task.documentId,
-                        name: `Document ${task.documentId}`,
-                        file_path: `/files/doc${task.documentId}.pdf`,
-                      },
-                    ]
+                    {
+                      document_id: task.documentId,
+                      name: `Document ${task.documentId}`,
+                      file_path: `/files/doc${task.documentId}.pdf`,
+                    },
+                  ]
                   : [],
                 sub_tasks: [],
                 comments: [],
@@ -275,7 +272,7 @@ export default function KanbanProject() {
   const fetchTaskDetails = async (taskId) => {
     try {
       const response = await axios.get(
-        `http://localhost:5287/api/v1/task/${taskId}`
+        `http://localhost:5287/api/v1/task/${taskId}/project/${projectId}`
       );
       console.log("API Response:", response.data);
       if (response?.data?.status === 200) {
@@ -292,6 +289,7 @@ export default function KanbanProject() {
           endDateSprintTask: taskData.endDateSprintTask,
           status: taskData.status,
         });
+        setTaskComments(taskData.comments);
         setSelectedTask(taskData);
       } else {
         console.error("Error fetching task:", response.data.message);
@@ -986,7 +984,7 @@ export default function KanbanProject() {
       (role) => role.account_id === editableTask?.assignee
     );
 
-    const userId = Cookies.get("userId");
+    const userId = Cookies.get('userId');
     const currentUser = project?.project_roles.find(
       (role) => String(role.account_id) === userId
     );
@@ -998,9 +996,9 @@ export default function KanbanProject() {
       }
 
       try {
-        const accessToken = Cookies.get("accessToken");
+        const accessToken = Cookies.get('accessToken');
         const response = await axios.delete(
-          `http://localhost:5287/api/v1/task/${editableTask.id}`,
+          `https://localhost:7150/api/v1/task/47${editableTask.id}`,
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,
@@ -1009,8 +1007,7 @@ export default function KanbanProject() {
         );
 
         if (response.status === 200) {
-          // alert("Task deleted successfully!");
-          console.log("task deleted", response.data);
+          alert("Task deleted successfully!");
           setIsTaskDialogOpen(false);
           setProject((prevProject) => ({
             ...prevProject,
@@ -1020,7 +1017,7 @@ export default function KanbanProject() {
             })),
           }));
         } else {
-          // alert("Failed to delete the task.");
+          alert("Failed to delete the task.");
         }
       } catch (error) {
         console.error("Error deleting task:", error.response || error.message);
@@ -1029,7 +1026,7 @@ export default function KanbanProject() {
     };
 
     const canEditAssignee =
-      currentUser?.role === "Owner" || currentUser?.role === "Manager";
+      currentUser?.role === 'Owner' || currentUser?.role === 'Manager';
 
     const UserAvatar = ({ username, size = "md" }) => {
       const initials = username ? username.substring(0, 2).toUpperCase() : "U";
@@ -1051,38 +1048,28 @@ export default function KanbanProject() {
     return (
       <>
         <div
-          className={`fixed inset-0 bg-black/60 transition-opacity duration-300 ${
-            isTaskDialogOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-          } z-50`}
+          className={`fixed inset-0 bg-black/60 transition-opacity duration-300 ${isTaskDialogOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+            } z-50`}
           onClick={() => setIsTaskDialogOpen(false)}
         />
         <Dialog
           open={isTaskDialogOpen}
           handler={() => setIsTaskDialogOpen(false)}
           size="md"
-          className="fixed top-[56px] left-[300px] -translate-x-1/2 w-[1000px] max-w-[calc(200vw-48px)] m-0 p-0 shadow-xl z-[60] max-h-[calc(100vh-80px)] overflow-hidden"
+          className="fixed top-[56px] left-[16px] w-[800px] shadow-xl z-[60] max-h-[calc(100vh-80px)] overflow-hidden"
           animate={{
             mount: { scale: 1, opacity: 1 },
             unmount: { scale: 0.9, opacity: 0 },
           }}
         >
           <DialogHeader className="flex justify-between items-center border-b p-4">
-            <div className="flex items-center gap-4">
-              <Link
-                to="/jivar/projects"
-                className="text-blue-500 hover:underline"
-              >
+            <div className="flex items-center gap-2">
+              <Link to="/jivar/projects" className="text-blue-500 hover:underline">
                 <Typography variant="small">Projects</Typography>
               </Link>
-              <Typography variant="small" color="blue-gray">
-                /
-              </Typography>
-              <Typography variant="small" color="blue-gray">
-                {project?.name}
-              </Typography>
-              <Typography variant="small" color="blue-gray">
-                /
-              </Typography>
+              <Typography variant="small" color="blue-gray">/</Typography>
+              <Typography variant="small" color="blue-gray">{project?.name}</Typography>
+              <Typography variant="small" color="blue-gray">/</Typography>
               <div className="text-sm font-bold">
                 {editableTask?.title} - {editableTask?.id}
               </div>
@@ -1095,21 +1082,16 @@ export default function KanbanProject() {
               <X className="h-4 w-4" />
             </IconButton>
           </DialogHeader>
-          <DialogBody
-            className="p-4 overflow-y-auto"
-            style={{ maxHeight: "calc(80vh - 160px)" }}
-          >
-            <div className="grid grid-cols-3 gap-6">
+          <DialogBody className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(80vh - 160px)' }}>
+            <div className="grid grid-cols-3 gap-4">
               <div className="col-span-2">
-                <div className="mb-6">
+                <div className="mb-4">
                   <Typography variant="h5" color="blue-gray" className="mb-2">
                     <input
                       type="text"
                       value={editableTask?.title || ""}
                       placeholder="Title"
-                      onChange={(e) =>
-                        handleInputChange("title", e.target.value)
-                      }
+                      onChange={(e) => handleInputChange("title", e.target.value)}
                       className="w-full border rounded p-2"
                     />
                   </Typography>
@@ -1123,7 +1105,7 @@ export default function KanbanProject() {
                     rows={3}
                   />
                 </div>
-                <div className="mb-6">
+                <div className="mb-4">
                   <Typography variant="h6" color="blue-gray" className="mb-2">
                     Attach File
                   </Typography>
@@ -1133,12 +1115,12 @@ export default function KanbanProject() {
                     className="w-full border rounded p-2"
                   />
                 </div>
-                <div className="mb-6">
+                <div className="mb-4">
                   <Typography variant="h6" color="blue-gray" className="mb-2">
                     Uploaded Files
                   </Typography>
                   {Array.isArray(uploadedFiles) && uploadedFiles.length > 0 ? (
-                    <ul className="list-disc pl-5">
+                    <ul className="list-disc pl-4">
                       {uploadedFiles.map((file) => (
                         <li key={file.id}>
                           <a
@@ -1158,7 +1140,7 @@ export default function KanbanProject() {
                     </Typography>
                   )}
                 </div>
-                <div className="mb-6">
+                <div className="mb-4">
                   <Typography variant="h6" color="blue-gray" className="mb-2">
                     Start Date
                   </Typography>
@@ -1171,7 +1153,7 @@ export default function KanbanProject() {
                     className="w-full border rounded p-2"
                   />
                 </div>
-                <div className="mb-6">
+                <div className="mb-4">
                   <Typography variant="h6" color="blue-gray" className="mb-2">
                     End Date
                   </Typography>
@@ -1217,39 +1199,27 @@ export default function KanbanProject() {
                   </div>
                 </div>
               </div>
-              <div className="space-y-6 border-l-2 pl-3">
+              <div className="space-y-4 border-l-2 pl-3">
                 <div>
-                  <Typography
-                    variant="small"
-                    color="blue-gray"
-                    className="font-medium mb-2"
-                  >
+                  <Typography variant="small" color="blue-gray" className="font-medium mb-2">
                     Assign By
                   </Typography>
                   <input
                     type="text"
-                    value={
-                      editableTask?.assignBy || currentUser?.username || ""
-                    }
+                    value={editableTask?.assignBy || currentUser?.username || ""}
                     placeholder="Assign By"
                     readOnly
                     className="w-full border rounded p-2 bg-gray-100"
                   />
                 </div>
                 <div>
-                  <Typography
-                    variant="small"
-                    color="blue-gray"
-                    className="font-medium mb-2"
-                  >
+                  <Typography variant="small" color="blue-gray" className="font-medium mb-2">
                     Assignee
                   </Typography>
                   {canEditAssignee ? (
                     <select
                       value={editableTask?.assignee || ""}
-                      onChange={(e) =>
-                        handleInputChange("assignee", e.target.value)
-                      }
+                      onChange={(e) => handleInputChange("assignee", e.target.value)}
                       className="w-full border rounded p-2"
                     >
                       <option value="">Select Assignee</option>
@@ -1269,33 +1239,24 @@ export default function KanbanProject() {
                   )}
                 </div>
                 <div>
-                  <Typography
-                    variant="small"
-                    color="blue-gray"
-                    className="font-medium mb-2"
-                  >
+                  <Typography variant="small" color="blue-gray" className="font-medium mb-2">
                     Current Status
                   </Typography>
                   <div
-                    className={`px-4 py-2 rounded text-white ${
-                      editableTask?.status === "TO_DO"
-                        ? "bg-black"
-                        : editableTask?.status === "IN_PROGRESS"
-                          ? "bg-red-500"
-                          : editableTask?.status === "DONE"
-                            ? "bg-green-500"
-                            : "bg-gray-400"
-                    }`}
+                    className={`px-4 py-2 rounded text-white ${editableTask?.status === "TO_DO"
+                      ? "bg-black"
+                      : editableTask?.status === "IN_PROGRESS"
+                        ? "bg-red-500"
+                        : editableTask?.status === "DONE"
+                          ? "bg-green-500"
+                          : "bg-gray-400"
+                      }`}
                   >
                     {editableTask?.status || "No Status"}
                   </div>
                 </div>
                 <div>
-                  <Typography
-                    variant="small"
-                    color="blue-gray"
-                    className="font-medium mb-2"
-                  >
+                  <Typography variant="small" color="blue-gray" className="font-medium mb-2">
                     Update Status
                   </Typography>
                   <select
@@ -1336,7 +1297,81 @@ export default function KanbanProject() {
       </>
     );
   };
+  
+  const renderCommentDialog = () => {
+    return (
+      <>
+        <div
+          className={`fixed inset-0 bg-black/60 transition-opacity duration-300 ${isTaskDialogOpen ? "opacity-100" : "opacity-0 pointer-events-none"} z-50`}
+        />
+        <div
+          className="fixed top-[56px] left-[1300px] -translate-x-1/2 w-[600px] max-w-[calc(100vw-48px)] m-0 p-0 shadow-xl z-[60] max-h-[calc(100vh-80px)] overflow-hidden bg-white" // Added bg-white
+          style={{
+            transform: isTaskDialogOpen ? 'scale(1) translateX(0)' : 'scale(0.9) translateX(-50%)',
+            opacity: isTaskDialogOpen ? 1 : 0,
+          }}
+        >
+          <div className="flex justify-between items-center border-b p-4">
+            <div className="text-lg font-bold text-gray-900">Comments</div> {/* Darker text */}
+            <span className="cursor-pointer" onClick={() => setIsTaskDialogOpen(false)}>
+              <X className="h-4 w-4 text-gray-600" /> {/* Grayed out X */}
+            </span>
+          </div>
+          <div className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(80vh-160px)' }}>
+            <div className="space-y-4">
+              {taskComments.map((comment) => (
+                <div key={comment.id} className="space-y-2">
+                  <div className="flex items-start gap-2">
+                    <div className="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold"> {/* Darker blue */}
+                      {comment.createByName?.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1">
+                      <div className="bg-gray-100 p-3 rounded-lg shadow-md"> {/* Added shadow */}
+                        <p className="text-sm font-medium text-gray-900"> {/* Darker text */}
+                          {comment.createByName}
+                        </p>
+                        <p className="text-sm text-gray-700"> {/* Darker text */}
+                          {comment.content}
+                        </p>
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        {new Date(comment.createTime).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
 
+                  {comment.replies.length > 0 && (
+                    <div className="pl-10 space-y-2">
+                      {comment.replies.map((reply) => (
+                        <div key={reply.id} className="flex items-start gap-2">
+                          <div className="bg-green-600 text-white w-6 h-6 rounded-full flex items-center justify-center font-bold"> {/* Darker green */}
+                            {reply.createByName?.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-1">
+                            <div className="bg-gray-200 p-3 rounded-lg shadow-md"> {/* Added shadow */}
+                              <p className="text-sm font-medium text-gray-900"> {/* Darker text */}
+                                {reply.createByName}
+                              </p>
+                              <p className="text-sm text-gray-700"> {/* Darker text */}
+                                {reply.content}
+                              </p>
+                            </div>
+                            <div className="text-xs text-gray-600 mt-1">
+                              {new Date(reply.createTime).toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  };
   const renderAddUserDialog = () => (
     <Dialog
       open={isAddUserDialogOpen}
@@ -1932,7 +1967,7 @@ export default function KanbanProject() {
                     project.sprints
                       .find((s) => s.id === selectedSprintId)
                       ?.tasks.filter((task) => task.status === "IN_PROGRESS") ||
-                      [],
+                    [],
                     "inProgress"
                   )}
                   {renderColumn(
@@ -1949,6 +1984,7 @@ export default function KanbanProject() {
         </div>
       </div>
       {renderTaskDialog()}
+      {renderCommentDialog()}
     </div>
   );
 }
