@@ -605,6 +605,8 @@ export default function KanbanProject() {
     fetchUploadedFiles();
   }, []);
 
+  
+
   useEffect(() => {
     const handleKeyPress = (e) => {
       if (e.key.toLowerCase() === "m" && !e.target.matches("input, textarea")) {
@@ -1156,7 +1158,6 @@ export default function KanbanProject() {
                             </div>
                         </div>
 
-                        {/* Assignee and Status Section */}
                         <div className="space-y-4 border-l-2 pl-3">
                             <div>
                                 <Typography variant="small" color="blue-gray" className="font-medium mb-2">
