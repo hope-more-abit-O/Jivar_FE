@@ -2,28 +2,28 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 
 // Tạo instance của Axios
-const axiosClient = axios.create({
-    baseURL: 'http://localhost:5287/api/v1',
+const axiosClientV2 = axios.create({
+    baseURL: 'http://localhost:5287/api',
     headers: {
         'Content-Type': 'application/json',
     },
 });
- 
-axiosClient.interceptors.request.use(
+
+axiosClientV2.interceptors.request.use(
     (config) => {
         const token = Cookies.get('accessToken');
- 
+
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
- 
+
         return config;
     },
     (error) => Promise.reject(error)
 );
- 
+
 // Interceptor cho response
-axiosClient.interceptors.response.use(
+axiosClientV2.interceptors.response.use(
     (response) => response.data,
     (error) => {
         // Xử lý lỗi, ví dụ nếu token hết hạn
@@ -34,5 +34,5 @@ axiosClient.interceptors.response.use(
         return Promise.reject(error);
     }
 );
- 
-export default axiosClient;
+
+export default axiosClientV2;

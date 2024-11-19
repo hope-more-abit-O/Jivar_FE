@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios'; // Import axios
-import Cookies from 'js-cookie'; // Import js-cookie
+import axios from 'axios'; 
+import Cookies from 'js-cookie'; 
 import { ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button, Alert, AlertDescription } from "@material-tailwind/react"; // Import Alert for notifications
+import { Button, Alert, AlertDescription } from "@material-tailwind/react"; 
 import logo from '../assets/7537044.jpg';
 import { useLocation } from 'react-router-dom';
 
@@ -13,7 +13,7 @@ export default function JivarCreateProject() {
     const { message } = location.state || {};
 
     const handleGoBack = () => {
-        navigate(-1); // Go back to the previous page in the history
+        navigate(-1);
     };
 
     const [formData, setFormData] = useState({
@@ -34,7 +34,7 @@ export default function JivarCreateProject() {
         budget: false
     });
 
-    const [successMessage, setSuccessMessage] = useState(null); // State for alert message
+    const [successMessage, setSuccessMessage] = useState(null); 
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -43,7 +43,6 @@ export default function JivarCreateProject() {
             [name]: value
         }));
 
-        // Clear error when the user starts typing
         if (errors[name]) {
             setErrors(prev => ({
                 ...prev,

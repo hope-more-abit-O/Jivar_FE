@@ -5,7 +5,6 @@ import { User, Mail, Phone, Cake, Users } from 'lucide-react';
 import Navigation from './navigation/navigation';
 import axios from 'axios';
 import accountAPI from '../apis/accountApi';
-import { alert } from '@material-tailwind/react';
 
 export default function ManageProfile() {
     const [user, setUser] = useState({
@@ -31,7 +30,7 @@ export default function ManageProfile() {
 
             try {
                 const userId = Cookies.get('userId');
-                const res = await axios.get(`https://localhost:7150/api/v1/account/info/user/${userId}`, {
+                const res = await axios.get(`http://localhost:5287/api/v1/account/info/user/${userId}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                     },
@@ -58,25 +57,45 @@ export default function ManageProfile() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         console.log("Updated user data:", user);
-        const request = {
-            name: user.name,
-            phone: user.phone,
-            birthday: user.birthday,
-            gender: user.gender
-          }
-          console.log(request);
-          try {
-            await accountAPI.update({
-                data: request
+    
+        try {
+            const formData = new FormData();
+            formData.append('name', user.name);
+            formData.append('phone', user.phone);
+            formData.append('birthday', user.birthday);
+            formData.append('gender', user.gender);
+    
+            const token = Cookies.get('accessToken');
+            if (!token) {
+                console.error('No token found. Redirecting to login.');
+                navigate('/authentication/sign-in');
+                return;
+            }
+    
+            const response = await axios.put('http://localhost:5287/api/v1/account/info', formData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data',
+                },
             });
-
-            console.log(`Profile update successfully!`);
-          } catch (error) {
-            console.log(`Profile update failed!`);
-            console.log(error);
-          }
-        // Implement API call to update user profile
+    
+            console.log('Profile updated successfully:', response.data);
+            window.alert('Profile updated successfully!');
+            window.location.reload()
+        } catch (error) {
+            if (error.response) {
+                console.error('Error response data:', error.response.data);
+                window.alert(`Update failed: ${error.response.data.message || 'An error occurred.'}`);
+            } else if (error.request) {
+                console.error('No response received:', error.request);
+                window.alert('Update failed: No response from server.');
+            } else {
+                console.error('Error:', error.message);
+                window.alert(`Update failed: ${error.message}`);
+            }
+        }
     };
+    
 
     if (loading) {
         return (
