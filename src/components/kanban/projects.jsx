@@ -32,6 +32,7 @@ export default function KanbanProject() {
     const [searchQuery, setSearchQuery] = useState('');
     const [hoveredColumn, setHoveredColumn] = useState(null);
     const [isSprintDialogOpen, setIsSprintDialogOpen] = useState(false);
+    const [uploadedFiles, setUploadedFiles] = useState([]);
     const [updateUI, setUpdateUI] = useState(false);
     const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
     const [searchedUser, setSearchedUser] = useState(null);
@@ -80,6 +81,71 @@ export default function KanbanProject() {
     const commentInputRef = useRef(null);
     const { projectId } = useParams();
 
+    const fetchProjectById = async (projectId) => {
+        try {
+            const response = await axios.get(`http://192.168.2.223:5002/api/Project/${projectId}?includeRole=true&includeSprint=true&includeTask=true`);
+            if (response.data) {
+                const data = response.data;
+                console.log('API Response:', response.data);
+
+                setProject({
+                    id: data.id,
+                    name: data.name,
+                    description: data.description,
+                    create_by: {
+                        account_id: data.createBy?.id,
+                        username: data.createBy?.name,
+                    },
+                    create_time: data.createTime,
+                    complete_time: data.completeTime,
+                    budget: data.budget,
+                    status: data.status,
+                    project_roles: data.roles.map((role) => ({
+                        account_id: role.accountId,
+                        username: role.accountName,
+                        role: role.role,
+                    })),
+                    sprints: (data.sprints || []).map((sprint) => ({
+                        id: sprint.id,
+                        name: sprint.name,
+                        start_date: sprint.startDate,
+                        end_date: sprint.endDate,
+                        tasks: (sprint.tasks || []).map((task) => ({
+                            id: task.id,
+                            title: task.title,
+                            description: task.description,
+                            create_by: task.createBy,
+                            create_time: task.createTime,
+                            assign_by: task.assignBy,
+                            assignee: task.assignee,
+                            complete_time: task.completeTime,
+                            status: task.status,
+                            task_document: task.documentId
+                                ? [
+                                    {
+                                        document_id: task.documentId,
+                                        name: `Document ${task.documentId}`,
+                                        file_path: `/files/doc${task.documentId}.pdf`,
+                                    },
+                                ]
+                                : [],
+                            sub_tasks: [],
+                            comments: [],
+                        })),
+                    })),
+                });
+            } else {
+                setError('Project not found.');
+            }
+        } catch (err) {
+            setError('Failed to load project.', err);
+            setError(err.message || 'An error occurred');
+            console.log(err)
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         const fetchProject = async () => {
             try {
@@ -87,7 +153,6 @@ export default function KanbanProject() {
                 if (response.data) {
                     const data = response.data;
                     console.log('API Response:', response.data);
-
 
                     setProject({
                         id: data.id,
@@ -213,23 +278,24 @@ export default function KanbanProject() {
             );
 
             if (response.status === 200) {
+                console.log("Task update successful:", response.data);
                 alert("Task updated successfully!");
 
-                setProject((prevProject) => {
-                    const updatedSprints = prevProject.sprints.map((sprint) => {
-                        const updatedTasks = sprint.tasks.map((task) =>
-                            task.id === editableTask.id ? { ...task, ...editableTask } : task
-                        );
-                        return { ...sprint, tasks: updatedTasks };
-                    });
-                    return { ...prevProject, sprints: updatedSprints };
-                });
+                // setProject((prevProject) => {
+                //     const updatedSprints = prevProject.sprints.map((sprint) => {
+                //         const updatedTasks = sprint.tasks.map((task) =>
+                //             task.id === editableTask.id ? { ...task, ...editableTask } : task
+                //         );
+                //         return { ...sprint, tasks: updatedTasks };
+                //     });
+                //     return { ...prevProject, sprints: updatedSprints };
+                // });
 
-                setEditableTask((prevTask) => ({
-                    ...prevTask,
-                    ...editableTask,
-                }));
-
+                // setEditableTask((prevTask) => ({
+                //     ...prevTask,
+                //     ...editableTask,
+                // }));
+                window.location.reload()
                 setIsTaskDialogOpen(false);
             } else {
                 console.error("Failed to update task:", response.data.message);
@@ -246,6 +312,7 @@ export default function KanbanProject() {
             );
 
             if (response.status === 200) {
+                console.log("Task update successful:", response.data);
                 alert(`Task status updated to ${status} successfully!`);
                 setProject((prevProject) => {
                     const updatedSprints = prevProject.sprints.map((sprint) => {
@@ -405,6 +472,72 @@ export default function KanbanProject() {
     const handleSprintDialogOpen = () => {
         setIsSprintDialogOpen(true);
     };
+
+
+    const handleFileUpload = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const accessToken = Cookies.get('accessToken');
+            const response = await axios.post(
+                'http://192.168.2.223:5002/api/v1/document/uploadFile',
+                formData,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                        Authorization: `Bearer ${accessToken}`,
+                    },
+                }
+            );
+
+            if (response.status === 200) {
+                console.log('File uploaded successfully:', response.data);
+                alert('File uploaded successfully!');
+
+                const uploadedFile = response.data;
+                setEditableTask((prevTask) => ({
+                    ...prevTask,
+                    documentId: uploadedFile?.id || null,
+                }));
+
+                fetchUploadedFiles();
+            } else {
+                console.error('Failed to upload file:', response.data.message);
+            }
+        } catch (error) {
+            console.error('Error uploading file:', error.response?.data || error.message);
+        }
+    };
+
+    const fetchUploadedFiles = async () => {
+        try {
+            const accessToken = Cookies.get('accessToken');
+            const response = await axios.get('http://192.168.2.223:5002/api/v1/document', {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                },
+            });
+
+            if (response.status === 200) {
+                console.log('Fetched uploaded files:', response.data);
+                setUploadedFiles(response.data);
+            } else {
+                console.error('Failed to fetch files:', response.data.message);
+            }
+        } catch (error) {
+            console.error('Error fetching files:', error.response?.data || error.message);
+        }
+    };
+
+    useEffect(() => {
+        fetchUploadedFiles();
+    }, []);
+
+
 
     useEffect(() => {
         const handleKeyPress = (e) => {
@@ -665,37 +798,43 @@ export default function KanbanProject() {
         setIsTaskDialogOpen(true);
     };
 
-
-
     const handleCommentSubmit = async () => {
-        if (!newComment.trim()) return;
+        if (!newComment.trim() || !editableTask?.id) {
+            alert('Please enter a valid comment.');
+            return;
+        }
 
         try {
-            const response = await axios.post(`http://localhost:5287/task/${selectedTask.id}/comments`, {
-                content: newComment,
-                create_by: currentUser.id,
-            });
-
-            if (response.status !== 200) throw new Error('Failed to add comment');
-
-            const updatedTask = {
-                ...selectedTask,
-                comments: [
-                    ...selectedTask.comments,
-                    {
-                        id: Date.now(),
-                        content: newComment,
-                        create_by: currentUser.id,
-                        created_at: new Date().toISOString(),
+            const accessToken = Cookies.get('accessToken');
+            const response = await axios.post(
+                `http://192.168.2.223:5002/api/v1/comment/${editableTask.id}`,
+                { content: newComment.trim() },
+                {
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
                     },
-                ],
-            };
-            setSelectedTask(updatedTask);
-            setNewComment('');
+                }
+            );
+
+            if (response.status === 200) {
+                console.log('Comment added successfully:', response.data);
+
+                setEditableTask((prevTask) => ({
+                    ...prevTask,
+                    comments: [...prevTask.comments, { content: newComment.trim() }],
+                }));
+
+                setNewComment('');
+            } else {
+                console.error('Failed to add comment:', response);
+                alert('Failed to add comment. Please try again.');
+            }
         } catch (error) {
             console.error('Error adding comment:', error);
+            alert('An error occurred while adding the comment.');
         }
     };
+
 
     const renderSprintGrid = () => {
         if (!project.sprints || project.sprints.length === 0) {
@@ -768,6 +907,42 @@ export default function KanbanProject() {
             (role) => String(role.account_id) === userId
         );
 
+        const deleteTask = async () => {
+            if (!editableTask?.id || !project?.id) {
+                alert("Invalid task or project details.");
+                return;
+            }
+
+            try {
+                const accessToken = Cookies.get('accessToken');
+                const response = await axios.delete(
+                    `http://192.168.2.223:5002/api/v1/task/47${editableTask.id}`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${accessToken}`,
+                        },
+                    }
+                );
+
+                if (response.status === 200) {
+                    alert("Task deleted successfully!");
+                    setIsTaskDialogOpen(false);
+                    setProject((prevProject) => ({
+                        ...prevProject,
+                        sprints: prevProject.sprints.map((sprint) => ({
+                            ...sprint,
+                            tasks: sprint.tasks.filter((task) => task.id !== editableTask.id),
+                        })),
+                    }));
+                } else {
+                    alert("Failed to delete the task.");
+                }
+            } catch (error) {
+                console.error("Error deleting task:", error.response || error.message);
+                alert("An error occurred while deleting the task.");
+            }
+        };
+
         const canEditAssignee =
             currentUser?.role === 'Owner' || currentUser?.role === 'Manager';
 
@@ -799,7 +974,7 @@ export default function KanbanProject() {
                     open={isTaskDialogOpen}
                     handler={() => setIsTaskDialogOpen(false)}
                     size="md"
-                    className="fixed top-[56px] left-[500px] -translate-x-1/2 w-[800px] max-w-[calc(100vw-48px)] m-0 p-0 shadow-xl z-[60] max-h-[calc(100vh-80px)] overflow-hidden"
+                    className="fixed top-[56px] left-[300px] -translate-x-1/2 w-[1000px] max-w-[calc(200vw-48px)] m-0 p-0 shadow-xl z-[60] max-h-[calc(100vh-80px)] overflow-hidden"
                     animate={{
                         mount: { scale: 1, opacity: 1 },
                         unmount: { scale: 0.9, opacity: 0 },
@@ -810,15 +985,9 @@ export default function KanbanProject() {
                             <Link to="/jivar/projects" className="text-blue-500 hover:underline">
                                 <Typography variant="small">Projects</Typography>
                             </Link>
-                            <Typography variant="small" color="blue-gray">
-                                /
-                            </Typography>
-                            <Typography variant="small" color="blue-gray">
-                                {project?.name}
-                            </Typography>
-                            <Typography variant="small" color="blue-gray">
-                                /
-                            </Typography>
+                            <Typography variant="small" color="blue-gray">/</Typography>
+                            <Typography variant="small" color="blue-gray">{project?.name}</Typography>
+                            <Typography variant="small" color="blue-gray">/</Typography>
                             <div className="text-sm font-bold">
                                 {editableTask?.title} - {editableTask?.id}
                             </div>
@@ -831,7 +1000,7 @@ export default function KanbanProject() {
                             <X className="h-4 w-4" />
                         </IconButton>
                     </DialogHeader>
-                    <DialogBody className="p-4 overflow-y-auto">
+                    <DialogBody className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(80vh - 160px)' }}>
                         <div className="grid grid-cols-3 gap-6">
                             <div className="col-span-2">
                                 <div className="mb-6">
@@ -853,6 +1022,41 @@ export default function KanbanProject() {
                                         className="w-full border rounded p-2"
                                         rows={3}
                                     />
+                                </div>
+                                <div className="mb-6">
+                                    <Typography variant="h6" color="blue-gray" className="mb-2">
+                                        Attach File
+                                    </Typography>
+                                    <input
+                                        type="file"
+                                        onChange={handleFileUpload}
+                                        className="w-full border rounded p-2"
+                                    />
+                                </div>
+                                <div className="mb-6">
+                                    <Typography variant="h6" color="blue-gray" className="mb-2">
+                                        Uploaded Files
+                                    </Typography>
+                                    {Array.isArray(uploadedFiles) && uploadedFiles.length > 0 ? (
+                                        <ul className="list-disc pl-5">
+                                            {uploadedFiles.map((file) => (
+                                                <li key={file.id}>
+                                                    <a
+                                                        href={file.file_path}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-blue-500 hover:underline"
+                                                    >
+                                                        {file.name}
+                                                    </a>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <Typography variant="small" color="gray">
+                                            No files uploaded yet.
+                                        </Typography>
+                                    )}
                                 </div>
                                 <div className="mb-6">
                                     <Typography variant="h6" color="blue-gray" className="mb-2">
@@ -880,9 +1084,39 @@ export default function KanbanProject() {
                                         className="w-full border rounded p-2"
                                     />
                                 </div>
+                                <div className="mt-4">
+                                    <Typography variant="h6" className="mb-2">
+                                        Comments
+                                    </Typography>
+                                    <div className="space-y-2">
+                                        {editableTask?.comments?.map((comment, index) => (
+                                            <div
+                                                key={index}
+                                                className="p-2 bg-gray-100 rounded shadow-sm text-sm text-blue-gray-800"
+                                            >
+                                                {comment.content}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="mt-4">
+                                        <Textarea
+                                            placeholder="Add a comment..."
+                                            value={newComment}
+                                            onChange={(e) => setNewComment(e.target.value)}
+                                            className="w-full border rounded p-2"
+                                        />
+                                        <Button
+                                            variant="filled"
+                                            color="blue"
+                                            size="sm"
+                                            className="mt-2"
+                                            onClick={handleCommentSubmit}
+                                        >
+                                            Comment
+                                        </Button>
+                                    </div>
+                                </div>
                             </div>
-
-                            {/* Các trường chỉnh sửa Assign By và Assignee */}
                             <div className="space-y-6 border-l-2 pl-3">
                                 <div>
                                     <Typography variant="small" color="blue-gray" className="font-medium mb-2">
@@ -959,17 +1193,23 @@ export default function KanbanProject() {
                             </div>
                         </div>
                     </DialogBody>
-                    <DialogFooter className="border-t p-4">
-                        <div className="flex justify-between w-full">
-                            <Button
-                                variant="filled"
-                                size="sm"
-                                color="blue"
-                                onClick={updateTaskDetails}
-                            >
-                                Save Changes
-                            </Button>
-                        </div>
+                    <DialogFooter className="border-t p-4 gap-4">
+                        <Button
+                            variant="outlined"
+                            size="sm"
+                            color="red"
+                            onClick={deleteTask}
+                        >
+                            Delete Task
+                        </Button>
+                        <Button
+                            variant="filled"
+                            size="sm"
+                            color="blue"
+                            onClick={updateTaskDetails}
+                        >
+                            Save Changes
+                        </Button>
                     </DialogFooter>
                 </Dialog>
             </>
@@ -1122,7 +1362,7 @@ export default function KanbanProject() {
 
                     return (
                         <div
-                            key={`${task.id}-${task.status}`} // Include `status` in key for dynamic updates
+                            key={`${task.id}-${task.status}`}
                             className="bg-white p-2 my-2 rounded shadow cursor-pointer hover:bg-gray-50"
                             onClick={() => handleTaskClick(task)}
                         >
