@@ -24,34 +24,52 @@ const Dashboard = ({ projectId }) => {
     const handleDownloadAndProcess = async () => {
         try {
             setLoading(true);
-
+    
             const projectId = Cookies.get("projectId");
             const accessToken = Cookies.get("accessToken");
             if (!accessToken) {
                 throw new Error("Access token is missing!");
             }
-
+    
             const response = await axios.get(
                 `http://localhost:5287/api/ExcelExport/export-projects/${projectId}`,
                 {
                     headers: { Authorization: `Bearer ${accessToken}` },
-                    responseType: "blob",
+                    responseType: "blob", // Receive blob data
                 }
             );
-
+    
+            // Save the file locally
+            const contentDisposition = response.headers["content-disposition"];
+            const fileName = contentDisposition
+                ? contentDisposition.split("filename=")[1].replace(/"/g, "")
+                : "download.xlsx";
+    
+            const blob = new Blob([response.data], { type: response.headers["content-type"] });
+            const fileUrl = window.URL.createObjectURL(blob);
+    
+            // Trigger file download
+            const link = document.createElement("a");
+            link.href = fileUrl;
+            link.setAttribute("download", fileName);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+    
+            // Process the file for chart generation
             const fileReader = new FileReader();
             fileReader.onload = (e) => {
                 const workbook = XLSX.read(e.target.result, { type: "binary" });
                 const sheetNames = workbook.SheetNames;
-
+    
                 const charts = sheetNames.map((sheetName) => {
                     const sheet = workbook.Sheets[sheetName];
                     const jsonData = XLSX.utils.sheet_to_json(sheet);
-
+    
                     const numericColumns = Object.keys(jsonData[0] || {}).filter(
                         (col) => typeof jsonData[0][col] === "number"
                     );
-
+    
                     return {
                         sheetName,
                         data: numericColumns.map((col) => ({
@@ -60,7 +78,7 @@ const Dashboard = ({ projectId }) => {
                         })),
                     };
                 });
-
+    
                 setChartsData(charts);
                 setLoading(false);
             };
@@ -71,6 +89,7 @@ const Dashboard = ({ projectId }) => {
             setLoading(false);
         }
     };
+    
 
 
     return (
