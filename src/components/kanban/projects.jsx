@@ -1890,6 +1890,12 @@ export default function KanbanProject() {
             ) : (
               <>
                 <Button
+                  onClick={handleBackToSprints}
+                  className="mb-4 bg-blue-500 text-white px-4 py-2 rounded"
+                >
+                  Back to Sprints list
+                </Button>
+                <Button
                   className={`ms-4 mb-4 px-4 py-2 rounded ${project.sprints
                       .find((s) => s.id === selectedSprintId)
                       ?.tasks.length > 0
