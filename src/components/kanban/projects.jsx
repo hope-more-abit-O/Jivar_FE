@@ -605,7 +605,7 @@ export default function KanbanProject() {
     fetchUploadedFiles();
   }, []);
 
-  
+
 
   useEffect(() => {
     const handleKeyPress = (e) => {
@@ -885,7 +885,7 @@ export default function KanbanProject() {
       alert("Please enter a valid comment.");
       return;
     }
-  
+
     try {
       const accessToken = Cookies.get("accessToken");
       const response = await axios.post(
@@ -897,10 +897,10 @@ export default function KanbanProject() {
           },
         }
       );
-  
+
       if (response.status === 200) {
         console.log("Comment added successfully:", response.data);
-  
+
         setEditableTask((prevTask) => ({
           ...prevTask,
           comments: [...(prevTask?.comments || []), { content: newComment.trim() }],
@@ -911,7 +911,7 @@ export default function KanbanProject() {
       alert("Failed to submit comment. Please try again.");
     }
   };
-  
+
 
   const renderSprintGrid = () => {
     if (!project.sprints || project.sprints.length === 0) {
@@ -976,288 +976,288 @@ export default function KanbanProject() {
 
   const renderTaskDialog = () => {
     const taskCreator = project?.project_roles.find(
-        (role) => role.account_id === editableTask?.createBy
+      (role) => role.account_id === editableTask?.createBy
     );
     const taskAssignee = project?.project_roles.find(
-        (role) => role.account_id === editableTask?.assignee
+      (role) => role.account_id === editableTask?.assignee
     );
 
     const userId = Cookies.get('userId');
     const currentUser = project?.project_roles.find(
-        (role) => String(role.account_id) === userId
+      (role) => String(role.account_id) === userId
     );
 
     const deleteTask = async () => {
-        if (!editableTask?.id || !project?.id) {
-            alert("Invalid task or project details.");
-            return;
-        }
+      if (!editableTask?.id || !project?.id) {
+        alert("Invalid task or project details.");
+        return;
+      }
 
-        try {
-            const accessToken = Cookies.get('accessToken');
-            const response = await axios.delete(
-                `http://localhost:5287/api/v1/task/${editableTask.id}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`,
-                    },
-                }
-            );
+      try {
+        const accessToken = Cookies.get('accessToken');
+        const response = await axios.delete(
+          `http://localhost:5287/api/v1/task/${editableTask.id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
 
-            if (response.status === 200) {
-                alert("Task deleted successfully!");
-                setIsTaskDialogOpen(false);
-                setProject((prevProject) => ({
-                    ...prevProject,
-                    sprints: prevProject.sprints.map((sprint) => ({
-                        ...sprint,
-                        tasks: sprint.tasks.filter((task) => task.id !== editableTask.id),
-                    })),
-                }));
-            } else {
-                alert("Failed to delete the task.");
-            }
-        } catch (error) {
-            console.error("Error deleting task:", error.response || error.message);
-            alert("An error occurred while deleting the task.");
+        if (response.status === 200) {
+          alert("Task deleted successfully!");
+          setIsTaskDialogOpen(false);
+          setProject((prevProject) => ({
+            ...prevProject,
+            sprints: prevProject.sprints.map((sprint) => ({
+              ...sprint,
+              tasks: sprint.tasks.filter((task) => task.id !== editableTask.id),
+            })),
+          }));
+        } else {
+          alert("Failed to delete the task.");
         }
+      } catch (error) {
+        console.error("Error deleting task:", error.response || error.message);
+        alert("An error occurred while deleting the task.");
+      }
     };
 
     const canEditAssignee =
-        currentUser?.role === 'Owner' || currentUser?.role === 'Manager';
+      currentUser?.role === 'Owner' || currentUser?.role === 'Manager';
 
     return (
-        <>
-            <div
-                className={`fixed inset-0 bg-black/60 transition-opacity duration-300 ${isTaskDialogOpen ? "opacity-100" : "opacity-0 pointer-events-none"} z-50`}
-                onClick={() => setIsTaskDialogOpen(false)}
-            />
-            <Dialog
-                open={isTaskDialogOpen}
-                handler={() => setIsTaskDialogOpen(false)}
-                size="lg"
-                className="fixed top-[56px] left-[50px] -translate-x-1/2 w-[900px] shadow-xl z-[60] max-h-[calc(100vh-80px)] overflow-hidden"
-                animate={{
-                    mount: { scale: 1, opacity: 1 },
-                    unmount: { scale: 0.9, opacity: 0 },
-                }}
+      <>
+        <div
+          className={`fixed inset-0 bg-black/60 transition-opacity duration-300 ${isTaskDialogOpen ? "opacity-100" : "opacity-0 pointer-events-none"} z-50`}
+          onClick={() => setIsTaskDialogOpen(false)}
+        />
+        <Dialog
+          open={isTaskDialogOpen}
+          handler={() => setIsTaskDialogOpen(false)}
+          size="lg"
+          className="fixed top-[56px] left-[50px] -translate-x-1/2 w-[900px] shadow-xl z-[60] max-h-[calc(100vh-80px)] overflow-hidden"
+          animate={{
+            mount: { scale: 1, opacity: 1 },
+            unmount: { scale: 0.9, opacity: 0 },
+          }}
+        >
+          <DialogHeader className="flex justify-between items-center border-b p-4">
+            <div className="flex items-center gap-2">
+              <Link to="/jivar/projects" className="text-blue-500 hover:underline">
+                <Typography variant="small">Projects</Typography>
+              </Link>
+              <Typography variant="small" color="blue-gray">/</Typography>
+              <Typography variant="small" color="blue-gray">{project?.name}</Typography>
+              <Typography variant="small" color="blue-gray">/</Typography>
+              <div className="text-sm font-bold">
+                {editableTask?.title} - {editableTask?.id}
+              </div>
+            </div>
+            <IconButton
+              variant="text"
+              color="blue-gray"
+              onClick={() => setIsTaskDialogOpen(false)}
             >
-                <DialogHeader className="flex justify-between items-center border-b p-4">
-                    <div className="flex items-center gap-2">
-                        <Link to="/jivar/projects" className="text-blue-500 hover:underline">
-                            <Typography variant="small">Projects</Typography>
-                        </Link>
-                        <Typography variant="small" color="blue-gray">/</Typography>
-                        <Typography variant="small" color="blue-gray">{project?.name}</Typography>
-                        <Typography variant="small" color="blue-gray">/</Typography>
-                        <div className="text-sm font-bold">
-                            {editableTask?.title} - {editableTask?.id}
-                        </div>
-                    </div>
-                    <IconButton
-                        variant="text"
-                        color="blue-gray"
-                        onClick={() => setIsTaskDialogOpen(false)}
-                    >
-                        <X className="h-4 w-4" />
-                    </IconButton>
-                </DialogHeader>
-                <DialogBody className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(80vh - 160px)' }}>
-                    <div className="grid grid-cols-3 gap-4">
-                        <div className="col-span-2">
-                            {/* Task Details Section */}
-                            <div className="mb-4">
-                                <Typography variant="h5" color="blue-gray" className="mb-2">
-                                    <input
-                                        type="text"
-                                        value={editableTask?.title || ""}
-                                        placeholder="Title"
-                                        onChange={(e) => handleInputChange("title", e.target.value)}
-                                        className="w-full border rounded p-2"
-                                    />
-                                </Typography>
-                                <textarea
-                                    value={editableTask?.description || ""}
-                                    placeholder="Description"
-                                    onChange={(e) =>
-                                        handleInputChange("description", e.target.value)
-                                    }
-                                    className="w-full border rounded p-2"
-                                    rows={3}
-                                />
-                            </div>
-                            <div className="mb-4">
-                                <Typography variant="h6" color="blue-gray" className="mb-2">
-                                    Attach File
-                                </Typography>
-                                <input
-                                    type="file"
-                                    onChange={handleFileUpload}
-                                    className="w-full border rounded p-2"
-                                />
-                            </div>
-                            <div className="mb-4">
-                                <Typography variant="h6" color="blue-gray" className="mb-2">
-                                    Start Date
-                                </Typography>
-                                <input
-                                    type="datetime-local"
-                                    value={editableTask?.startDateSprintTask || ""}
-                                    onChange={(e) =>
-                                        handleInputChange("startDateSprintTask", e.target.value)
-                                    }
-                                    className="w-full border rounded p-2"
-                                />
-                            </div>
-                            <div className="mb-4">
-                                <Typography variant="h6" color="blue-gray" className="mb-2">
-                                    End Date
-                                </Typography>
-                                <input
-                                    type="datetime-local"
-                                    value={editableTask?.endDateSprintTask || ""}
-                                    onChange={(e) =>
-                                        handleInputChange("endDateSprintTask", e.target.value)
-                                    }
-                                    className="w-full border rounded p-2"
-                                />
-                            </div>
+              <X className="h-4 w-4" />
+            </IconButton>
+          </DialogHeader>
+          <DialogBody className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(80vh - 160px)' }}>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="col-span-2">
+                {/* Task Details Section */}
+                <div className="mb-4">
+                  <Typography variant="h5" color="blue-gray" className="mb-2">
+                    <input
+                      type="text"
+                      value={editableTask?.title || ""}
+                      placeholder="Title"
+                      onChange={(e) => handleInputChange("title", e.target.value)}
+                      className="w-full border rounded p-2"
+                    />
+                  </Typography>
+                  <textarea
+                    value={editableTask?.description || ""}
+                    placeholder="Description"
+                    onChange={(e) =>
+                      handleInputChange("description", e.target.value)
+                    }
+                    className="w-full border rounded p-2"
+                    rows={3}
+                  />
+                </div>
+                <div className="mb-4">
+                  <Typography variant="h6" color="blue-gray" className="mb-2">
+                    Attach File
+                  </Typography>
+                  <input
+                    type="file"
+                    onChange={handleFileUpload}
+                    className="w-full border rounded p-2"
+                  />
+                </div>
+                <div className="mb-4">
+                  <Typography variant="h6" color="blue-gray" className="mb-2">
+                    Start Date
+                  </Typography>
+                  <input
+                    type="datetime-local"
+                    value={editableTask?.startDateSprintTask || ""}
+                    onChange={(e) =>
+                      handleInputChange("startDateSprintTask", e.target.value)
+                    }
+                    className="w-full border rounded p-2"
+                  />
+                </div>
+                <div className="mb-4">
+                  <Typography variant="h6" color="blue-gray" className="mb-2">
+                    End Date
+                  </Typography>
+                  <input
+                    type="datetime-local"
+                    value={editableTask?.endDateSprintTask || ""}
+                    onChange={(e) =>
+                      handleInputChange("endDateSprintTask", e.target.value)
+                    }
+                    className="w-full border rounded p-2"
+                  />
+                </div>
 
-                            {/* Comments Section */}
-                            <div className="mt-4">
-                                <Typography variant="h6" className="mb-2">
-                                    Comments
-                                </Typography>
-                                <div className="space-y-2">
-                                    {editableTask?.comments?.map((comment, index) => (
-                                        <div
-                                            key={index}
-                                            className="p-2 bg-gray-100 rounded shadow-sm text-sm text-blue-gray-800"
-                                        >
-                                            {comment.content}
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="mt-4">
-                                    <Textarea
-                                        placeholder="Add a comment..."
-                                        value={newComment}
-                                        onChange={(e) => setNewComment(e.target.value)}
-                                        className="w-full border rounded p-2"
-                                    />
-                                    <Button
-                                        variant="filled"
-                                        color="blue"
-                                        size="sm"
-                                        className="mt-2"
-                                        onClick={handleCommentSubmit}
-                                    >
-                                        Comment
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
+                {/* Comments Section */}
+                <div className="mt-4">
+                  <Typography variant="h6" className="mb-2">
+                    Comments
+                  </Typography>
+                  <div className="space-y-2">
+                    {editableTask?.comments?.map((comment, index) => (
+                      <div
+                        key={index}
+                        className="p-2 bg-gray-100 rounded shadow-sm text-sm text-blue-gray-800"
+                      >
+                        {comment.content}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4">
+                    <Textarea
+                      placeholder="Add a comment..."
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      className="w-full border rounded p-2"
+                    />
+                    <Button
+                      variant="filled"
+                      color="blue"
+                      size="sm"
+                      className="mt-2"
+                      onClick={handleCommentSubmit}
+                    >
+                      Comment
+                    </Button>
+                  </div>
+                </div>
+              </div>
 
-                        <div className="space-y-4 border-l-2 pl-3">
-                            <div>
-                                <Typography variant="small" color="blue-gray" className="font-medium mb-2">
-                                    Assign By
-                                </Typography>
-                                <input
-                                    type="text"
-                                    value={editableTask?.assignBy || currentUser?.username || ""}
-                                    placeholder="Assign By"
-                                    readOnly
-                                    className="w-full border rounded p-2 bg-gray-100"
-                                />
-                            </div>
-                            <div>
-                                <Typography variant="small" color="blue-gray" className="font-medium mb-2">
-                                    Assignee
-                                </Typography>
-                                {canEditAssignee ? (
-                                    <select
-                                        value={editableTask?.assignee || ""}
-                                        onChange={(e) => handleInputChange("assignee", e.target.value)}
-                                        className="w-full border rounded p-2"
-                                    >
-                                        <option value="">Select Assignee</option>
-                                        {project?.project_roles.map((role) => (
-                                            <option key={role.account_id} value={role.account_id}>
-                                                {role.username}
-                                            </option>
-                                        ))}
-                                    </select>
-                                ) : (
-                                    <input
-                                        type="text"
-                                        value={taskAssignee?.username || "Unassigned"}
-                                        readOnly
-                                        className="w-full border rounded p-2 bg-gray-100"
-                                    />
-                                )}
-                            </div>
-                            <div>
-                                <Typography variant="small" color="blue-gray" className="font-medium mb-2">
-                                    Current Status
-                                </Typography>
-                                <div
-                                    className={`px-4 py-2 rounded text-white ${editableTask?.status === "TO_DO"
-                                        ? "bg-black"
-                                        : editableTask?.status === "IN_PROGRESS"
-                                            ? "bg-red-500"
-                                            : editableTask?.status === "DONE"
-                                                ? "bg-green-500"
-                                                : "bg-gray-400"
-                                        }`}
-                                >
-                                    {editableTask?.status || "No Status"}
-                                </div>
-                            </div>
-                            <div>
-                                <Typography variant="small" color="blue-gray" className="font-medium mb-2">
-                                    Update Status
-                                </Typography>
-                                <select
-                                    value={editableTask?.status || "TO_DO"}
-                                    onChange={(e) => {
-                                        const newStatus = e.target.value;
-                                        updateTaskStatus(editableTask?.id, newStatus);
-                                    }}
-                                    className="w-full border rounded p-2"
-                                >
-                                    <option value="TO_DO">TO_DO</option>
-                                    <option value="IN_PROGRESS">IN_PROGRESS</option>
-                                    <option value="DONE">DONE</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </DialogBody>
-                <DialogFooter className="border-t p-4 gap-4">
-                    <Button
-                        variant="outlined"
-                        size="sm"
-                        color="red"
-                        onClick={deleteTask}
+              <div className="space-y-4 border-l-2 pl-3">
+                <div>
+                  <Typography variant="small" color="blue-gray" className="font-medium mb-2">
+                    Assign By
+                  </Typography>
+                  <input
+                    type="text"
+                    value={editableTask?.assignBy || currentUser?.username || ""}
+                    placeholder="Assign By"
+                    readOnly
+                    className="w-full border rounded p-2 bg-gray-100"
+                  />
+                </div>
+                <div>
+                  <Typography variant="small" color="blue-gray" className="font-medium mb-2">
+                    Assignee
+                  </Typography>
+                  {canEditAssignee ? (
+                    <select
+                      value={editableTask?.assignee || ""}
+                      onChange={(e) => handleInputChange("assignee", e.target.value)}
+                      className="w-full border rounded p-2"
                     >
-                        Delete Task
-                    </Button>
-                    <Button
-                        variant="filled"
-                        size="sm"
-                        color="blue"
-                        onClick={updateTaskDetails}
-                    >
-                        Save Changes
-                    </Button>
-                </DialogFooter>
-            </Dialog>
-        </>
+                      <option value="">Select Assignee</option>
+                      {project?.project_roles.map((role) => (
+                        <option key={role.account_id} value={role.account_id}>
+                          {role.username}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={taskAssignee?.username || "Unassigned"}
+                      readOnly
+                      className="w-full border rounded p-2 bg-gray-100"
+                    />
+                  )}
+                </div>
+                <div>
+                  <Typography variant="small" color="blue-gray" className="font-medium mb-2">
+                    Current Status
+                  </Typography>
+                  <div
+                    className={`px-4 py-2 rounded text-white ${editableTask?.status === "TO_DO"
+                      ? "bg-black"
+                      : editableTask?.status === "IN_PROGRESS"
+                        ? "bg-red-500"
+                        : editableTask?.status === "DONE"
+                          ? "bg-green-500"
+                          : "bg-gray-400"
+                      }`}
+                  >
+                    {editableTask?.status || "No Status"}
+                  </div>
+                </div>
+                <div>
+                  <Typography variant="small" color="blue-gray" className="font-medium mb-2">
+                    Update Status
+                  </Typography>
+                  <select
+                    value={editableTask?.status || "TO_DO"}
+                    onChange={(e) => {
+                      const newStatus = e.target.value;
+                      updateTaskStatus(editableTask?.id, newStatus);
+                    }}
+                    className="w-full border rounded p-2"
+                  >
+                    <option value="TO_DO">TO_DO</option>
+                    <option value="IN_PROGRESS">IN_PROGRESS</option>
+                    <option value="DONE">DONE</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </DialogBody>
+          <DialogFooter className="border-t p-4 gap-4">
+            <Button
+              variant="outlined"
+              size="sm"
+              color="red"
+              onClick={deleteTask}
+            >
+              Delete Task
+            </Button>
+            <Button
+              variant="filled"
+              size="sm"
+              color="blue"
+              onClick={updateTaskDetails}
+            >
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </Dialog>
+      </>
     );
-};
+  };
 
-  
+
   const renderCommentDialog = () => {
     return (
       <>
@@ -1890,21 +1890,26 @@ export default function KanbanProject() {
             ) : (
               <>
                 <Button
-                  onClick={handleBackToSprints}
-                  className="mb-4 bg-blue-500 text-white px-4 py-2 rounded"
-                >
-                  Back to Sprints list
-                </Button>
-                <Button
-                  className="ms-4 mb-4 bg-blue-500 text-white px-4 py-2 rounded"
+                  className={`ms-4 mb-4 px-4 py-2 rounded ${project.sprints
+                      .find((s) => s.id === selectedSprintId)
+                      ?.tasks.length > 0
+                      ? "bg-blue-500 text-white cursor-pointer"
+                      : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    }`}
                   onClick={() => {
                     const projectId = Cookies.get("projectId");
                     navigate(`/jivar/backlog?projectId=${projectId}`);
                   }}
+                  disabled={
+                    !(
+                      project.sprints
+                        .find((s) => s.id === selectedSprintId)
+                        ?.tasks.length > 0
+                    )
+                  }
                 >
                   Create Backlog
                 </Button>
-
                 <div className="flex space-x-4" key={updateUI}>
                   {renderColumn(
                     "TO DO",

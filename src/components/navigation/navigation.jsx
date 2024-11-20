@@ -71,7 +71,6 @@ export default function Navigation() {
                 const userId = Cookies.get('userId');
                 if (!userId) {
                     console.error("User ID is missing in cookies");
-                    navigate('/authentication/sign-in');
                     return;
                 }
 
@@ -84,7 +83,6 @@ export default function Navigation() {
                 setUser(res.data);
             } catch (error) {
                 console.error("Failed to fetch user data:", error);
-                navigate('/authentication/sign-in');
             } finally {
                 setLoading(false);
             }
