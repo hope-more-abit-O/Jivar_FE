@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import {
     Card,
@@ -8,6 +8,7 @@ import {
     Input,
     IconButton,
     Tooltip,
+    Alert,
 } from "@material-tailwind/react";
 import { ChevronDownIcon, ChevronUpIcon, StarIcon } from "@heroicons/react/24/outline";
 import { EllipsisVerticalIcon } from "@heroicons/react/24/solid";
@@ -20,6 +21,8 @@ export default function ViewAllProjects() {
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const location = useLocation();
+    const [successMessage, setSuccessMessage] = useState(location.state?.successMessage || '');
     const [currentPage, setCurrentPage] = useState(1);
     const [sortConfig, setSortConfig] = useState({
         key: 'createTime',
@@ -46,7 +49,7 @@ export default function ViewAllProjects() {
                 // if (!res.ok) {
                 //     throw new Error(`HTTP error! status: ${res.status}`);
                 // }
-                
+
                 setProjects(res.data || []);
             } catch (error) {
                 console.log(error);
@@ -75,6 +78,13 @@ export default function ViewAllProjects() {
         setSortOption(e.target.value);
         setSortConfig({ key: 'createTime', direction: e.target.value });
     };
+
+    useEffect(() => {
+        if (successMessage) {
+            const timer = setTimeout(() => setSuccessMessage(''), 3000); // Hide after 5 seconds
+            return () => clearTimeout(timer);
+        }
+    }, [successMessage]);
 
     const getSortedProjects = () => {
         const sortedProjects = [...projects].filter((project) =>
@@ -160,6 +170,15 @@ export default function ViewAllProjects() {
 
     return (
         <>
+            {successMessage && (
+                <Alert
+                    color="green"
+                    className="fixed top-5 right-5 z-50 w-[300px] shadow-lg font-medium border-[#2ec946] bg-[#2ec946]/10 text-[#2ec946]"
+                >
+                    {successMessage}
+                </Alert>
+            )}
+
             <Navigation />
             <div className="container mx-auto px-4 py-8">
                 <div className="flex justify-between items-center mb-8">
